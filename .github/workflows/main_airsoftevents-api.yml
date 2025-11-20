@@ -23,11 +23,13 @@ jobs:
         with:
           dotnet-version: '9.x'
 
+      # AANGEPAST: We voegen 'backend' toe zodat hij de juiste map pakt
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build backend --configuration Release
 
+      # AANGEPAST: Ook hier 'backend' toevoegen
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish backend -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -38,6 +40,9 @@ jobs:
   deploy:
     runs-on: windows-latest
     needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     
     steps:
       - name: Download artifact from build job

@@ -18,14 +18,13 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      # STAP 1: We wijzen direct naar de Solution file (.sln) die ik op je screenshot zie
+      # AANGEPAST: 'backend/' weggehaald. We zoeken nu in de hoofdmap.
       - name: Build with dotnet
-        run: dotnet build backend/AirsoftEvents.sln --configuration Release
+        run: dotnet build AirsoftEvents.sln --configuration Release
 
-      # STAP 2: We wijzen direct naar het API projectbestand (.csproj)
-      # Ik ga ervan uit dat in de map 'AirsoftEvents.Api' een bestand 'AirsoftEvents.Api.csproj' zit.
+      # AANGEPAST: Ook hier 'backend/' weggehaald.
       - name: dotnet publish
-        run: dotnet publish backend/AirsoftEvents.Api/AirsoftEvents.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish AirsoftEvents.Api/AirsoftEvents.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

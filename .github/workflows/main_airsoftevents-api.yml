@@ -18,11 +18,11 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      # AANGEPAST: 'backend/' weggehaald. We zoeken nu in de hoofdmap.
+      # AANGEPAST: Geen 'backend/' meer. Hij pakt direct de solution.
       - name: Build with dotnet
         run: dotnet build AirsoftEvents.sln --configuration Release
 
-      # AANGEPAST: Ook hier 'backend/' weggehaald.
+      # AANGEPAST: Geen 'backend/' meer.
       - name: dotnet publish
         run: dotnet publish AirsoftEvents.Api/AirsoftEvents.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 

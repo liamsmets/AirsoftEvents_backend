@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy ASP.Net Core app to Azure Web App - AirsoftEvents-api
 
 on:
@@ -12,8 +9,6 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    permissions:
-      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +18,14 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      # AANGEPAST: We voegen 'backend' toe zodat hij de juiste map pakt
+      # STAP 1: We wijzen direct naar de Solution file (.sln) die ik op je screenshot zie
       - name: Build with dotnet
-        run: dotnet build backend --configuration Release
+        run: dotnet build backend/AirsoftEvents.sln --configuration Release
 
-      # AANGEPAST: Ook hier 'backend' toevoegen
+      # STAP 2: We wijzen direct naar het API projectbestand (.csproj)
+      # Ik ga ervan uit dat in de map 'AirsoftEvents.Api' een bestand 'AirsoftEvents.Api.csproj' zit.
       - name: dotnet publish
-        run: dotnet publish backend -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish backend/AirsoftEvents.Api/AirsoftEvents.Api.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -43,13 +39,13 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-      
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3

@@ -32,4 +32,10 @@ public class UserService : IUserService
         var createdUser = await _userRepo.AddAsync(user);
         return createdUser.AsContract();
     }
+
+    public async Task<UserResponseContract?> GetUserByIdAsync(Guid id)
+    {
+        var user = await _userRepo.GetByIdAsync(id);
+        return user?.AsContract();
+    }
 }

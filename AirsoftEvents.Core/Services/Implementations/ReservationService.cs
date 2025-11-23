@@ -38,4 +38,9 @@ public class ReservationService : IReservationService
         var created = await _reservationRepo.AddAsync(reservation);
         return created.AsContract();
     }
+    public async Task<ReservationResponseContract?> GetReservationByIdAsync(Guid id)
+    {
+        var reservation = await _reservationRepo.GetByIdAsync(id);
+        return reservation?.AsContract();
+    }
 }

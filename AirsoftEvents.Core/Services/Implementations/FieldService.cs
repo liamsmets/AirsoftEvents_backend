@@ -30,4 +30,16 @@ public class FieldService : IFieldService
         var fields = await _fieldRepo.GetAllAsync();
         return fields.Select(f => f.AsContract()).ToList();
     }
+
+    public async Task<FieldResponseContract?> GetFieldByIdAsync(Guid id)
+    {
+        var field = await _fieldRepo.GetByIdAsync(id);
+
+        if (field == null)
+        {
+            return null;
+        }
+
+        return field.AsContract();
+    }
 }

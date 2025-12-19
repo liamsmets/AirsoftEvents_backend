@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using AirsoftEvents.Core.Contracts;
-using AirsoftEvents.Core.Services.Interfaces;
-using AirsoftEvents.Core.Exceptions; // Zorg dat deze erbij staat voor de exceptions!
+using AirsoftEvents.Api.Contracts;
+using AirsoftEvents.Domain.Services.Interfaces;
+using AirsoftEvents.Domain.Services.Exceptions;
 
 namespace AirsoftEvents.Api.Controllers;
 

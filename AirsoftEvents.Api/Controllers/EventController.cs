@@ -1,21 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
-using AirsoftEvents.Core.Contracts;
-using AirsoftEvents.Core.Services.Interfaces;
-using AirsoftEvents.Core.Exceptions;
+using AirsoftEvents.Api.Contracts;
+using AirsoftEvents.Domain.Services.Interfaces;
+using AirsoftEvents.Domain.Services.Exceptions;
 
 namespace AirsoftEvents.Api.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventsController : ControllerBase
+public class EventsController(IEventService _service) : ControllerBase
 {
-    private readonly IEventService _service;
-
-    public EventsController(IEventService service)
-    {
-        _service = service;
-    }
-
+    
     [HttpPost]
     public async Task<IActionResult> CreateEvent([FromBody] EventRequestContract eventToCreate)
     {
@@ -42,7 +36,7 @@ public class EventsController : ControllerBase
         return Ok(events);
     }
 
-    [HttpGet("all")]
+    [HttpGet]
     public async Task<IActionResult> GetAllEvents()
     {
         var events = await _service.GetAllEventsAsync();

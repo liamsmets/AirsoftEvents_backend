@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using AirsoftEvents.Core.Contracts;
-using AirsoftEvents.Core.Services.Interfaces;
+using AirsoftEvents.Api.Contracts;
+using AirsoftEvents.Domain.Services.Interfaces;
 
 namespace AirsoftEvents.Api.Controllers;
 

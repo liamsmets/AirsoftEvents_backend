@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AirsoftEvents.Api.Contracts;
 using AirsoftEvents.Domain.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AirsoftEvents.Api.Controllers;
 
@@ -15,6 +16,7 @@ public class UsersController : ControllerBase
         _service = service;
     }
 
+    [Authorize(Policy = "ApiWritePolicy")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] UserRequestContract userToCreate)
     {
@@ -30,6 +32,7 @@ public class UsersController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "ApiReadPolicy")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserById([FromRoute] Guid id)
     {

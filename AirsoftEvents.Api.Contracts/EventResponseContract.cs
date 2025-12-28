@@ -1,3 +1,5 @@
+using AirsoftEvents.Domain.Models.Enums;
+
 namespace AirsoftEvents.Api.Contracts;
 
 public class EventResponseContract
@@ -8,6 +10,7 @@ public class EventResponseContract
     public DateTime Date {get;set;}
     public decimal Price {get;set;}
     public int MaxPlayers {get;set;}
-    public required Enum Status {get;set;}
+    public required EventStatus Status {get;set;}
     public Guid FieldId {get;set;}
+    public Guid UserId {get;set;}
 }

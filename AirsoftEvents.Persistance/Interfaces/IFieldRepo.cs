@@ -6,6 +6,7 @@ public interface IFieldRepo
 {
     Task<List<Field>> GetAllAsync();
     Task<Field?> GetByIdAsync(Guid id);
+    Task<List<Field>> GetByOwnerId(Guid id);
     Task<List<Field>> GetApprovedFieldsAsync();
     Task<Field> AddAsync(Field field);
     Task UpdateAsync(Field field);

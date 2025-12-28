@@ -20,6 +20,10 @@ public class EventRepo(AirsoftEventsAppDbContext dbContext): IEventRepo
     {
         return await dbContext.Events.Where(e => e.Status == EventStatus.Approved).ToListAsync();
     }
+    public async Task<List<Event>> GetByUserIdAsync(Guid id)
+    {
+        return await dbContext.Events.Where(e=> e.UserId == id).ToListAsync();
+    }
     public async Task<Event> AddAsync(Event eventToAdd)
     {
         await dbContext.Events.AddAsync(eventToAdd);

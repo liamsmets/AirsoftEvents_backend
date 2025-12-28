@@ -9,7 +9,7 @@ public class Field
     public string Description {get;set;} = string.Empty;
     public int Capacity {get;set;}
     public required FieldStatus Status {get;set;}
-    public Guid OwnerId{get;set;}
+    public Guid OwnerId { get; set; }
 
-    public User owner {get;set;} = null!;
+
 }

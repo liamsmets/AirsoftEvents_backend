@@ -22,6 +22,7 @@ public static class FieldMappingExtentions
     {
         return new Field
         {
+            Id = fieldModel.Id,
             Name = fieldModel.Name,
             Address = fieldModel.Address,
             Description = fieldModel.Description,
@@ -35,6 +36,7 @@ public static class FieldMappingExtentions
     {
         return new AirsoftFieldModel
         {
+            Id = fieldEntity.Id,
             Name = fieldEntity.Name,
             Address = fieldEntity.Address,
             Description = fieldEntity.Description,
@@ -50,8 +52,10 @@ public static class FieldMappingExtentions
             Id = model.Id,
             Name = model.Name,
             Address = model.Address,
+            Description = model.Description,
             Capacity = model.Capacity,
-            Status = model.Status
+            Status = model.Status,
+            OwnerId = model.OwnerId
         };
     }
 }

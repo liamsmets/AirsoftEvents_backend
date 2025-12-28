@@ -12,6 +12,7 @@ public class Event
     public int MaxPlayers {get;set;}
     public required EventStatus Status {get;set;}
     public Guid FieldId {get;set;}
+    public Guid UserId {get;set;}
 
     public Field field {get;set;} = null!;
 }

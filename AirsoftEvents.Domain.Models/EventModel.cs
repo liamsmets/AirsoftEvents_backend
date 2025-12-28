@@ -14,7 +14,10 @@ public class EventModel
     public EventStatus Status { get; set; } = EventStatus.Pending;
 
     public Guid FieldId {get;set;}
+    public Guid UserId {get;set;}
     public AirsoftFieldModel Field {get;set;} = null!;
+
+    public UserModel User {get;set;} = null!;
 
     public List<ReservationModel> Reservations {get;set;} = new();
 }

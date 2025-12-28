@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using AirsoftEvents.Api.Contracts;
 using AirsoftEvents.Domain.Services.Interfaces;
 using AirsoftEvents.Domain.Services.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AirsoftEvents.Api.Controllers;
 
@@ -16,6 +17,7 @@ public class ReservationsController : ControllerBase
         _service = service;
     }
 
+    [Authorize(Policy = "ApiWritePolicy")]
     [HttpPost]
     public async Task<IActionResult> CreateReservation([FromBody] ReservationRequestContract reservationToCreate)
     {
@@ -35,6 +37,7 @@ public class ReservationsController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "ApiReadPolicy")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetReservationById([FromRoute] Guid id)
     {

@@ -18,6 +18,11 @@ public class FieldRepo(AirsoftEventsAppDbContext dbContext): IFieldRepo
         return await dbContext.Fields.FirstOrDefaultAsync(f => f.Id == id);
 
     }
+
+    public async Task<List<Field>> GetByOwnerId(Guid id)
+    {
+        return await dbContext.Fields.Where(f => f.OwnerId == id).ToListAsync();
+    }
     public async Task<List<Field>> GetApprovedFieldsAsync()
     {
         return await dbContext.Fields.Where(f => f.Status == FieldStatus.Approved).ToListAsync();

@@ -35,7 +35,9 @@ public static class EventMappingExtensions
             Date = eventModel.Date,
             Price = eventModel.Price,
             Status = eventModel.Status,
-            FieldId = eventModel.FieldId
+            FieldId = eventModel.FieldId,
+            MaxPlayers = eventModel.MaxPlayers,
+            UserId = eventModel.UserId
         };
     }
 
@@ -49,7 +51,9 @@ public static class EventMappingExtensions
             Date = eventEntity.Date,
             Price = eventEntity.Price,
             Status = eventEntity.Status,
-            FieldId = eventEntity.FieldId 
+            FieldId = eventEntity.FieldId ,
+            MaxPlayers = eventEntity.MaxPlayers,
+            UserId = eventEntity.UserId
         };
     }
 
@@ -63,7 +67,9 @@ public static class EventMappingExtensions
             Date = model.Date,
             Price = model.Price,
             Status = model.Status,
-            FieldId = model.FieldId
+            FieldId = model.FieldId,
+            MaxPlayers = model.MaxPlayers,
+            UserId = model.UserId
         };
     }
 }

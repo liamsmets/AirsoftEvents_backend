@@ -12,7 +12,8 @@ public static class UserMappingExtensions
         return new UserModel
         {
             Username = request.Username,
-            Email = request.Email
+            Email = request.Email,
+            PasswordHash = request.Password
         };
     }
 
@@ -23,6 +24,7 @@ public static class UserMappingExtensions
             Id = userModel.Id,
             Username = userModel.Username,
             Email = userModel.Email,
+            PasswordHash = userModel.PasswordHash,
             Role = userModel.Role
         };
     }
@@ -42,8 +44,11 @@ public static class UserMappingExtensions
     {
         return new UserModel
         {
+          Id = userEntity.Id,
           Username = userEntity.Username,
-          Email = userEntity.Email
+          Email = userEntity.Email,
+          Role = userEntity.Role,
+          PasswordHash = userEntity.PasswordHash
         };
     }
 }

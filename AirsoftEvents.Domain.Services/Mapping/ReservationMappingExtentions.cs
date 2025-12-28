@@ -42,8 +42,10 @@ public static class ReservationMappingExtensions
     {
         return new ReservationModel
         {
+            Id = reservationEntity.Id,
             EventId = reservationEntity.EventId,
-            UserId = reservationEntity.UserId
+            UserId = reservationEntity.UserId,
+            ReservedAt = reservationEntity.ReservedAt
         };
     }
 }

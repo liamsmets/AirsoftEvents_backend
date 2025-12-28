@@ -1,0 +1,129 @@
+:root{
+  --bg: #0b0b0f;
+  --card: #12121a;
+  --text: #f3f3f3;
+  --muted: #b7b7b7;
+  --yellow: #ffd400;
+  --yellowHover: #ffdf33;
+  --border: #2a2a35;
+  --danger: #ff4d4d;
+}
+
+body{
+  background: radial-gradient(1200px 600px at 20% 0%, #171722 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.auth-shell{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.auth-card{
+  width: 100%;
+  max-width: 440px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.brand-badge{
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #000;
+  font-weight: 800;
+  display:grid;
+  place-items:center;
+}
+
+h1{
+  margin: 0 0 6px 0;
+  font-size: 1.6rem;
+}
+
+.sub{
+  margin: 0 0 18px 0;
+  color: var(--muted);
+  font-size: .95rem;
+  line-height: 1.4;
+}
+
+.field{
+  margin-bottom: 12px;
+}
+
+label{
+  display:block;
+  margin-bottom: 6px;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+input{
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0f0f15;
+  color: var(--text);
+  outline: none;
+}
+
+input:focus{
+  border-color: rgba(255, 212, 0, .7);
+  box-shadow: 0 0 0 4px rgba(255, 212, 0, .15);
+}
+
+.btn-primary{
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--yellow);
+  color: #000;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-primary:hover{
+  background: var(--yellowHover);
+}
+
+.btn-secondary {
+  background: #1a1a24;
+  border: 1px solid #2a2a35;
+  color: #f3f3f3;
+}
+
+
+.error{
+  background: rgba(255,77,77,.12);
+  border: 1px solid rgba(255,77,77,.35);
+  color: #ffd0d0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: .92rem;
+}
+
+.footer{
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: .85rem;
+}
+

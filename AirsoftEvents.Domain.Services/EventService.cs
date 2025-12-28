@@ -8,16 +8,19 @@ using AirsoftEvents.Api.Contracts;
 
 namespace AirsoftEvents.Domain.Services;
 
-public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo) : IEventService
+public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo userRepo) : IEventService
 {
     
-    public async Task<EventResponseContract> CreateEventAsync(EventRequestContract eventRequest)
+    public async Task<EventResponseContract> CreateEventAsync(EventRequestContract eventRequest, Guid userId)
     {
+        var user = await userRepo.GetByIdAsync(userId);
+        
+        
+
         var newEvent = eventRequest.AsModel().AsEntity();
 
         var field = await fieldRepo.GetByIdAsync(newEvent.FieldId);
-        
-        if (field == null) 
+        if (field == null)
             throw new ArgumentException("Terrein niet gevonden");
 
         if (field.Status != FieldStatus.Approved)
@@ -29,13 +32,14 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo) : IEventS
         newEvent.Id = Guid.NewGuid();
         newEvent.Status = EventStatus.Pending;
 
-        var createdEvent = await eventRepo.AddAsync(newEvent);
+        newEvent.UserId = userId;
 
- 
+        var createdEvent = await eventRepo.AddAsync(newEvent);
         return createdEvent.AsModel().AsContract();
     }
 
-    public async Task<List<EventResponseContract>> GetUpcomingEventsAsync()
+
+    public async Task<List<EventResponseContract>> GetUpcomingEventsAsync(EventStatus eventStatus)
     {
         var events = await eventRepo.GetApprovedEventsAsync();
     
@@ -73,4 +77,10 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo) : IEventS
 
         await eventRepo.UpdateAsync(eventModel);
     }
+    public async Task<List<EventResponseContract>> GetMyEventsAsync(Guid userId)
+    {
+        var events = await eventRepo.GetByUserIdAsync(userId);
+        return events.Select(e => e.AsModel().AsContract()).ToList();
+    }
+
 }

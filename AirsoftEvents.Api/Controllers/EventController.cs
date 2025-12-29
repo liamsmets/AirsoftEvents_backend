@@ -92,4 +92,47 @@ public class EventsController(IEventService _service) : ControllerBase
             return NotFound();
         }
     }
+    
+    [Authorize(Policy = "ApiWritePolicy")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] EventUpdateContract update)
+    {
+        var organizerId = User.GetUserId();
+
+        try
+        {
+            var updated = await _service.UpdateEventAsync(id, update, organizerId);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    [Authorize(Policy = "ApiWritePolicy")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
+    {
+        var organizerId = User.GetUserId();
+
+        try
+        {
+            await _service.DeleteEventAsync(id, organizerId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
 }

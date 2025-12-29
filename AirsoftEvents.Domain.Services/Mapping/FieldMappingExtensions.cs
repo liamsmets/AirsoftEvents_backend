@@ -28,7 +28,8 @@ public static class FieldMappingExtentions
             Description = fieldModel.Description,
             Capacity = fieldModel.Capacity,
             OwnerId = fieldModel.OwnerId,
-            Status = fieldModel.Status
+            Status = fieldModel.Status,
+            ImageUrl = fieldModel.ImageUrl
         };
     }
 
@@ -42,7 +43,8 @@ public static class FieldMappingExtentions
             Description = fieldEntity.Description,
             Capacity = fieldEntity.Capacity,
             OwnerId = fieldEntity.OwnerId,
-            Status = fieldEntity.Status
+            Status = fieldEntity.Status,
+            ImageUrl = fieldEntity.ImageUrl
         };
     }
     public static FieldResponseContract AsContract(this AirsoftFieldModel model)
@@ -55,7 +57,8 @@ public static class FieldMappingExtentions
             Description = model.Description,
             Capacity = model.Capacity,
             Status = model.Status,
-            OwnerId = model.OwnerId
+            OwnerId = model.OwnerId,
+            ImageUrl = model.ImageUrl
         };
     }
 }

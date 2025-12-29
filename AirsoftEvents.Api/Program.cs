@@ -9,6 +9,7 @@ using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,7 +30,12 @@ services.AddScoped<IEventRepo, EventRepo>()
         .AddScoped<IReservationRepo, ReservationRepo>()
         .AddScoped<IReservationService, ReservationService>()
         .AddScoped<IUserRepo, UserRepo>()
-        .AddScoped<IUserService, UserService>();
+        .AddScoped<IUserService, UserService>()
+        
+        .AddScoped<IFieldImageRepo, FieldImageRepo>();
+
+services.Configure<FieldImageStorageOptions>(
+    builder.Configuration.GetSection(nameof(FieldImageStorageOptions)));
 
 services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

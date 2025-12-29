@@ -13,7 +13,6 @@ public class AirsoftFieldModel
     public FieldStatus Status {get;set;} = FieldStatus.Pending;
 
     public Guid OwnerId{get;set;}
-    public UserModel Owner {get;set;} = null!;
 
-    public List<EventModel> Events {get;set;} = new();
+    public string? ImageUrl {get;set;}
 }

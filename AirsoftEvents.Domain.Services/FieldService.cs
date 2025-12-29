@@ -13,10 +13,12 @@ namespace AirsoftEvents.Domain.Services;
 public class FieldService : IFieldService
 {
     private readonly IFieldRepo _fieldRepo;
+    private readonly IFieldImageRepo _fieldImageRepo;
 
-    public FieldService(IFieldRepo fieldRepo)
+    public FieldService(IFieldRepo fieldRepo, IFieldImageRepo fieldImageRepo)
     {
         _fieldRepo = fieldRepo;
+        _fieldImageRepo = fieldImageRepo;
     }
 
     public async Task<FieldResponseContract> CreateFieldAsync(FieldRequestContract request, Guid ownerId)
@@ -72,5 +74,52 @@ public class FieldService : IFieldService
     {
         var fields = await _fieldRepo.GetApprovedFieldsAsync();
         return fields.Select(f => f.AsModel().AsContract()).ToList();
+    }
+
+    public async Task<FieldResponseContract> UploadFieldPhotoAsync(Guid fieldId, Guid ownerId, byte[] content, string contentType, string originalFileName)
+    {
+        var fieldEntity = await _fieldRepo.GetByIdAsync(fieldId);
+        if (fieldEntity == null) throw new KeyNotFoundException();
+
+        if (fieldEntity.OwnerId != ownerId)
+            throw new ForbiddenException("Je kan enkel een foto uploaden voor je eigen terrein.");
+
+        var ext = Path.GetExtension(originalFileName);
+        if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+
+        var blobName = $"fields/{fieldId}/{Guid.NewGuid()}{ext}";
+        var url = await _fieldImageRepo.UploadAsync(content, blobName, contentType);
+
+        fieldEntity.ImageUrl = url;
+        await _fieldRepo.UpdateAsync(fieldEntity);
+
+        return fieldEntity.AsModel().AsContract();
+    }
+    public async Task<FieldResponseContract> UpdateFieldAsync(Guid fieldId, FieldUpdateContract update, Guid ownerId)
+    {
+        var field = await _fieldRepo.GetByIdAsync(fieldId);
+        if (field == null) throw new KeyNotFoundException();
+
+        if (field.OwnerId != ownerId)
+            throw new ForbiddenException("Je kan enkel je eigen terrein aanpassen.");
+
+        field.Name = update.Name;
+        field.Description = update.Description;
+        field.Capacity = update.Capacity;
+        field.Address = update.Address;
+
+        await _fieldRepo.UpdateAsync(field);
+
+        return field.AsModel().AsContract();
+    }
+    public async Task DeleteFieldAsync(Guid id, Guid ownerId)
+    {
+        var field = await _fieldRepo.GetByIdAsync(id);
+        if (field == null) throw new KeyNotFoundException();
+
+        if (field.OwnerId != ownerId)
+            throw new ForbiddenException("Je kan enkel je eigen terrein verwijderen.");
+
+        await _fieldRepo.DeleteAsync(id);
     }
 }

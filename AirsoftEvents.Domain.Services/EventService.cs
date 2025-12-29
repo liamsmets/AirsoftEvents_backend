@@ -83,4 +83,35 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
         return events.Select(e => e.AsModel().AsContract()).ToList();
     }
 
+    public async Task<EventResponseContract> UpdateEventAsync(Guid id, EventUpdateContract update, Guid userId)
+    {
+        var ev = await eventRepo.GetByIdAsync(id);
+        if (ev == null) throw new KeyNotFoundException();
+
+        if (ev.UserId != userId)
+            throw new ForbiddenException("Je kan enkel je eigen event aanpassen.");
+
+        ev.Name = update.Name;
+        ev.Description = update.Description;
+        ev.Date = update.Date;
+        ev.Price = update.Price;
+        ev.MaxPlayers = update.MaxPlayers;
+        ev.FieldId = update.FieldId;
+
+        await eventRepo.UpdateAsync(ev);
+        return ev.AsModel().AsContract();
+    }
+
+    public async Task DeleteEventAsync(Guid id, Guid userId)
+    {
+        var ev = await eventRepo.GetByIdAsync(id);
+        if (ev == null) throw new KeyNotFoundException();
+
+        if (ev.UserId != userId)
+            throw new ForbiddenException("Je kan enkel je eigen event verwijderen.");
+
+        await eventRepo.DeleteAsync(id);
+    }
+
+
 }

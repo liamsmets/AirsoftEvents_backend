@@ -95,4 +95,84 @@ public class FieldsController : ControllerBase
             return NotFound();
         }
     }
+
+    [Authorize(Policy = "ApiWritePolicy")]
+    [HttpPost("{id}/photo")]
+    public async Task<IActionResult> UploadFieldPhoto([FromRoute] Guid id, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType))
+            return BadRequest("Only jpg/png/webp allowed.");
+
+        var ownerId = User.GetUserId();
+
+        await using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+
+        try
+        {
+            var updated = await _service.UploadFieldPhotoAsync(
+                id,
+                ownerId,
+                ms.ToArray(),
+                file.ContentType,
+                file.FileName);
+
+            return Ok(updated);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [Authorize(Policy = "ApiWritePolicy")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateField([FromRoute] Guid id, [FromBody] FieldUpdateContract update)
+    {
+        var ownerId = User.GetUserId();
+
+        try
+        {
+            var updated = await _service.UpdateFieldAsync(id, update, ownerId);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    [Authorize(Policy = "ApiWritePolicy")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteField([FromRoute] Guid id)
+    {
+        var ownerId = User.GetUserId();
+
+        try
+        {
+            await _service.DeleteFieldAsync(id, ownerId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
 }

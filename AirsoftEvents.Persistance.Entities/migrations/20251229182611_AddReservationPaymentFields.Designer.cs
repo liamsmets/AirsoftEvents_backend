@@ -4,6 +4,7 @@ using AirsoftEvents.Persistance.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AirsoftEvents.Persistance.Entities.Migrations
 {
     [DbContext(typeof(AirsoftEventsAppDbContext))]
-    partial class AirsoftEventsAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251229182611_AddReservationPaymentFields")]
+    partial class AddReservationPaymentFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -121,6 +124,8 @@ namespace AirsoftEvents.Persistance.Entities.Migrations
 
                     b.HasIndex("EventId");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Reservations");
                 });
 
@@ -163,13 +168,21 @@ namespace AirsoftEvents.Persistance.Entities.Migrations
 
             modelBuilder.Entity("AirsoftEvents.Persistance.Entities.Reservation", b =>
                 {
-                    b.HasOne("AirsoftEvents.Persistance.Entities.Event", "Event")
+                    b.HasOne("AirsoftEvents.Persistance.Entities.Event", "desevent")
                         .WithMany()
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Event");
+                    b.HasOne("AirsoftEvents.Persistance.Entities.User", "owner")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("desevent");
+
+                    b.Navigation("owner");
                 });
 #pragma warning restore 612, 618
         }

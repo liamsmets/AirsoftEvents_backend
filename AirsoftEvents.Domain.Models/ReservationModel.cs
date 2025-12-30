@@ -1,3 +1,5 @@
+using AirsoftEvents.Domain.Models.Enums;
+
 namespace AirsoftEvents.Domain.Models;
 
 public class ReservationModel
@@ -10,4 +12,7 @@ public class ReservationModel
 
     public Guid EventId {get;set;}
     public EventModel Event {get;set;} = null!;
+
+    public ReservationpaymentStatus paymentStatus {get;set;} = ReservationpaymentStatus.Pending;
+    public string? MolliePaymentId {get;set;}
 }

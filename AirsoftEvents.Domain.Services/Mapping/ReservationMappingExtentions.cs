@@ -23,7 +23,9 @@ public static class ReservationMappingExtensions
             Id = reservationModel.Id,
             EventId = reservationModel.EventId,
             UserId = reservationModel.UserId,
-            ReservedAt = reservationModel.ReservedAt
+            ReservedAt = reservationModel.ReservedAt,
+            PaymentStatus = reservationModel.paymentStatus,
+            MolliePaymentId = reservationModel.MolliePaymentId
         };
     }
 
@@ -34,7 +36,9 @@ public static class ReservationMappingExtensions
             Id = model.Id,
             EventId = model.EventId,
             UserId = model.UserId,
-            ReservedAt = model.ReservedAt
+            ReservedAt = model.ReservedAt,
+            PaymentStatus = model.paymentStatus,
+            MolliePaymentId = model.MolliePaymentId
         };
     }
 
@@ -45,7 +49,9 @@ public static class ReservationMappingExtensions
             Id = reservationEntity.Id,
             EventId = reservationEntity.EventId,
             UserId = reservationEntity.UserId,
-            ReservedAt = reservationEntity.ReservedAt
+            ReservedAt = reservationEntity.ReservedAt,
+            paymentStatus = reservationEntity.PaymentStatus,
+            MolliePaymentId = reservationEntity.MolliePaymentId
         };
     }
 }

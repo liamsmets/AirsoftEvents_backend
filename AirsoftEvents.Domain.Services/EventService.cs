@@ -8,7 +8,7 @@ using AirsoftEvents.Api.Contracts;
 
 namespace AirsoftEvents.Domain.Services;
 
-public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo userRepo) : IEventService
+public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo userRepo, IReservationRepo reservationRepo) : IEventService
 {
     
     public async Task<EventResponseContract> CreateEventAsync(EventRequestContract eventRequest, Guid userId)
@@ -113,5 +113,22 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
         await eventRepo.DeleteAsync(id);
     }
 
+    public async Task<EventAvailabilityResponseContract> GetAvailabilityAsync(Guid eventId)
+    {
+        var ev = await eventRepo.GetByIdAsync(eventId);
+        if (ev == null) throw new KeyNotFoundException("Event not found");
 
+        var reserved = await reservationRepo.CountActiveByEventIdAsync(eventId);
+
+        var free = ev.MaxPlayers - reserved;
+        if (free < 0) free = 0;
+
+        return new EventAvailabilityResponseContract
+        {
+            EventId = eventId,
+            MaxPlayers = ev.MaxPlayers,
+            Reserved = reserved,
+            Free = free
+        };
+    }
 }

@@ -11,4 +11,7 @@ public interface IReservationRepo
     Task<Reservation> AddAsync(Reservation reservation);
     Task UpdateAsync(Reservation reservation);
     Task DeleteAsync(Guid id);
+    Task<Reservation?> GetByMolliePaymentIdAsync(string molliePaymentId);
+    Task<int> CountActiveByEventIdAsync(Guid eventId);
+
 }

@@ -12,7 +12,7 @@ namespace AirsoftEvents.Api.Controllers;
 
 [ApiController]
 [Route("events")]
-public class EventsController(IEventService _service) : ControllerBase
+public class EventsController(IEventService _service, IWeatherService _weatherService) : ControllerBase
 {
     [Authorize(Policy = "ApiWritePolicy")]
     [HttpPost]
@@ -92,7 +92,7 @@ public class EventsController(IEventService _service) : ControllerBase
             return NotFound();
         }
     }
-    
+
     [Authorize(Policy = "ApiWritePolicy")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] EventUpdateContract update)
@@ -135,4 +135,52 @@ public class EventsController(IEventService _service) : ControllerBase
         }
     }
 
+    [Authorize(Policy = "ApiReadPolicy")]
+    [HttpGet("{id}/availability")]
+    public async Task<IActionResult> GetAvailability(Guid id)
+    {
+        try
+        {
+            var dto = await _service.GetAvailabilityAsync(id);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{eventId}/weather")]
+    public async Task<IActionResult> GetWeatherForEvent(Guid eventId)
+    {
+        var ev = await _service.GetEventByIdAsync(eventId);
+        if (ev is null) return NotFound();
+
+        const double lat = 50.9368;
+        const double lon = 4.0397;
+
+        var weather = await _weatherService.GetWeatherForDateAsync(ev.Date.Date, lat, lon);
+        if (weather is null) return NoContent();
+
+        return Ok(weather);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("weather")]
+    public async Task<IActionResult> GetWeatherPreview([FromQuery] DateTime datum)
+    {
+        if (datum == default)
+            return BadRequest("Query parameter 'datum' is verplicht (YYYY-MM-DD).");
+
+        const double lat = 50.9368;
+        const double lon = 4.0397;
+
+        var weather = await _weatherService.GetWeatherForDateAsync(datum.Date, lat, lon);
+
+        if (weather is null)
+            return NoContent(); // ✅ 204, GEEN body
+
+        return Ok(weather); // ✅ 200 + JSON
+    }
 }

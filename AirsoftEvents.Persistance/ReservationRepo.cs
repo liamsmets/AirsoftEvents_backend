@@ -46,4 +46,18 @@ public class ReservationRepo(AirsoftEventsAppDbContext dbContext): IReservationR
             await dbContext.SaveChangesAsync();
         }
     }
+    public async Task<Reservation?> GetByMolliePaymentIdAsync(string molliePaymentId)
+    {
+        return await dbContext.Reservations
+            .FirstOrDefaultAsync(r => r.MolliePaymentId == molliePaymentId);
+    }
+    public async Task<int> CountActiveByEventIdAsync(Guid eventId)
+    {
+        return await dbContext.Reservations.CountAsync(r =>
+            r.EventId == eventId &&
+            (r.PaymentStatus == ReservationpaymentStatus.Pending ||
+            r.PaymentStatus == ReservationpaymentStatus.paymentCreated ||
+            r.PaymentStatus == ReservationpaymentStatus.paid)
+        );
+    }
 }

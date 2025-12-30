@@ -10,6 +10,8 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using AirsoftEvents.Api.Options;
+using AirsoftEvents.Api.Payments;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +24,9 @@ services.AddDbContext<AirsoftEventsAppDbContext>(options =>
 options.UseMySql(connectionstring, serverVersion));
 
 services.AddOpenApi();
+
+services.AddHttpClient();
+services.AddHttpClient<IWeatherService, WeatherService>();
 
 services.AddScoped<IEventRepo, EventRepo>()
         .AddScoped<IEventService, EventService>()
@@ -39,6 +44,10 @@ services.Configure<FieldImageStorageOptions>(
 
 services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+services.Configure<MollieOptions>(builder.Configuration.GetSection("Mollie"));
+
+services.AddSingleton<MockMollieStore>();
 
 services.AddCors(options =>
 {
@@ -82,7 +91,14 @@ services.AddAuthorizationBuilder()
         policy.RequireAuthenticatedUser();
         policy.RequireClaim("scope", "airsoftevents.api.admin");
         policy.RequireRole("Admin");
+    })
+    .AddPolicy("ApiUserWritePolicy", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("scope", "airsoftevents.api.write");
+        policy.RequireRole("Admin", "FieldOwner", "Player");
     });
+    
 
 var app = builder.Build();
 

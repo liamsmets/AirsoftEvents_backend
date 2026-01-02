@@ -37,7 +37,8 @@ services.AddScoped<IEventRepo, EventRepo>()
         .AddScoped<IUserRepo, UserRepo>()
         .AddScoped<IUserService, UserService>()
         
-        .AddScoped<IFieldImageRepo, FieldImageRepo>();
+        .AddScoped<IFieldImageRepo, FieldImageRepo>()
+        .AddScoped<ILogRepo, LogRepo>();
 
 services.Configure<FieldImageStorageOptions>(
     builder.Configuration.GetSection(nameof(FieldImageStorageOptions)));
@@ -111,6 +112,8 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<AirsoftEvents.Api.Middleware.CosmosLogMiddleware>();
 
 app.MapControllers();
 

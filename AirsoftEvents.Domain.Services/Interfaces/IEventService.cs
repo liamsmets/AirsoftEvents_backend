@@ -12,7 +12,8 @@ public interface IEventService
     Task<List<EventResponseContract>> GetMyEventsAsync(Guid userId);
     Task<EventResponseContract?> GetEventByIdAsync(Guid id);
     Task ApproveEventAsync(Guid id);
-    Task<EventResponseContract> UpdateEventAsync(Guid id, EventUpdateContract update, Guid userId);
-    Task DeleteEventAsync(Guid id, Guid userId);
+    Task<EventResponseContract> UpdateEventAsync(Guid id, EventUpdateContract update, Guid userId, bool isAdmin);
+    Task DeleteEventAsync(Guid id, Guid userId, bool isAdmin);
     Task<EventAvailabilityResponseContract> GetAvailabilityAsync(Guid eventId);
+    Task RejectEventAsync(Guid id);
 }

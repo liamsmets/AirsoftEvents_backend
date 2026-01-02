@@ -23,6 +23,7 @@ public class FieldsController : ControllerBase
     public async Task<IActionResult> CreateField([FromBody] FieldRequestContract fieldToCreate)
     {
         var ownerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         try
         {
@@ -43,7 +44,7 @@ public class FieldsController : ControllerBase
         return Ok(fields);
     }
 
-    [Authorize(Policy = "ApiReadPolicy")]
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetFieldById([FromRoute] Guid id)
     {
@@ -57,7 +58,7 @@ public class FieldsController : ControllerBase
         return Ok(field);
     }
 
-    [Authorize(Policy = "ApiReadPolicy")]
+    [AllowAnonymous]
     [HttpGet("Approved")]
     public async Task<IActionResult> GetApprovedFields()
     {
@@ -97,6 +98,15 @@ public class FieldsController : ControllerBase
     }
 
     [Authorize(Policy = "ApiWritePolicy")]
+    [HttpPut("{id}/reject")]
+    public async Task<IActionResult> RejectField(Guid id)
+    {
+        await _service.RejectFieldAsync(id);
+        return NoContent();
+    }
+
+
+    [Authorize(Policy = "ApiWritePolicy")]
     [HttpPost("{id}/photo")]
     public async Task<IActionResult> UploadFieldPhoto([FromRoute] Guid id, IFormFile file)
     {
@@ -108,6 +118,7 @@ public class FieldsController : ControllerBase
             return BadRequest("Only jpg/png/webp allowed.");
 
         var ownerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         await using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
@@ -117,6 +128,7 @@ public class FieldsController : ControllerBase
             var updated = await _service.UploadFieldPhotoAsync(
                 id,
                 ownerId,
+                isAdmin,
                 ms.ToArray(),
                 file.ContentType,
                 file.FileName);
@@ -133,15 +145,17 @@ public class FieldsController : ControllerBase
         }
     }
 
+
     [Authorize(Policy = "ApiWritePolicy")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateField([FromRoute] Guid id, [FromBody] FieldUpdateContract update)
     {
         var ownerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         try
         {
-            var updated = await _service.UpdateFieldAsync(id, update, ownerId);
+            var updated = await _service.UpdateFieldAsync(id, update, ownerId, isAdmin);
             return Ok(updated);
         }
         catch (KeyNotFoundException)
@@ -154,15 +168,17 @@ public class FieldsController : ControllerBase
         }
     }
 
+
     [Authorize(Policy = "ApiWritePolicy")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteField([FromRoute] Guid id)
     {
         var ownerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
 
         try
         {
-            await _service.DeleteFieldAsync(id, ownerId);
+            await _service.DeleteFieldAsync(id, ownerId, isAdmin);
             return NoContent();
         }
         catch (KeyNotFoundException)
@@ -174,5 +190,4 @@ public class FieldsController : ControllerBase
             return StatusCode(403, new { error = ex.Message });
         }
     }
-
 }

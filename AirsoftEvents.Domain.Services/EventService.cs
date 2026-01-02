@@ -83,12 +83,12 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
         return events.Select(e => e.AsModel().AsContract()).ToList();
     }
 
-    public async Task<EventResponseContract> UpdateEventAsync(Guid id, EventUpdateContract update, Guid userId)
+    public async Task<EventResponseContract> UpdateEventAsync(Guid id, EventUpdateContract update, Guid userId, bool isAdmin)
     {
         var ev = await eventRepo.GetByIdAsync(id);
         if (ev == null) throw new KeyNotFoundException();
 
-        if (ev.UserId != userId)
+        if (!isAdmin && ev.UserId != userId)
             throw new ForbiddenException("Je kan enkel je eigen event aanpassen.");
 
         ev.Name = update.Name;
@@ -102,12 +102,12 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
         return ev.AsModel().AsContract();
     }
 
-    public async Task DeleteEventAsync(Guid id, Guid userId)
+    public async Task DeleteEventAsync(Guid id, Guid userId, bool isAdmin)
     {
         var ev = await eventRepo.GetByIdAsync(id);
         if (ev == null) throw new KeyNotFoundException();
 
-        if (ev.UserId != userId)
+        if (!isAdmin && ev.UserId != userId)
             throw new ForbiddenException("Je kan enkel je eigen event verwijderen.");
 
         await eventRepo.DeleteAsync(id);
@@ -130,5 +130,15 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
             Reserved = reserved,
             Free = free
         };
+    }
+    
+
+    public async Task RejectEventAsync(Guid id)
+    {
+        var ev = await eventRepo.GetByIdAsync(id);
+        if (ev is null) throw new KeyNotFoundException("Event not found");
+
+        ev.Status = EventStatus.Rejected; // of hoe je enum heet
+        await eventRepo.UpdateAsync(ev);
     }
 }

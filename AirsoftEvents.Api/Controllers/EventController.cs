@@ -39,6 +39,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("upcoming")]
     public async Task<IActionResult> GetUpcomingEvents()
     {
@@ -64,7 +65,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         return Ok(events);
     }
 
-    [Authorize(Policy = "ApiReadPolicy")]
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetEventById([FromRoute] Guid id)
     {
@@ -94,14 +95,23 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     }
 
     [Authorize(Policy = "ApiWritePolicy")]
+    [HttpPut("{id}/reject")]
+    public async Task<IActionResult> RejectEvent(Guid id)
+    {
+        await _service.RejectEventAsync(id);
+        return NoContent();
+    }
+
+    [Authorize(Policy = "ApiWritePolicy")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] EventUpdateContract update)
     {
         var organizerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin"); // zie note hieronder
 
         try
         {
-            var updated = await _service.UpdateEventAsync(id, update, organizerId);
+            var updated = await _service.UpdateEventAsync(id, update, organizerId, isAdmin);
             return Ok(updated);
         }
         catch (KeyNotFoundException)
@@ -119,10 +129,11 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
     {
         var organizerId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin"); // zie note hieronder
 
         try
         {
-            await _service.DeleteEventAsync(id, organizerId);
+            await _service.DeleteEventAsync(id, organizerId, isAdmin);
             return NoContent();
         }
         catch (KeyNotFoundException)
@@ -135,7 +146,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         }
     }
 
-    [Authorize(Policy = "ApiReadPolicy")]
+    [AllowAnonymous]
     [HttpGet("{id}/availability")]
     public async Task<IActionResult> GetAvailability(Guid id)
     {

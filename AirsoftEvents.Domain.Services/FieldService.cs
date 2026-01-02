@@ -20,6 +20,7 @@ public class FieldService : IFieldService
         _fieldRepo = fieldRepo;
         _fieldImageRepo = fieldImageRepo;
     }
+    
 
     public async Task<FieldResponseContract> CreateFieldAsync(FieldRequestContract request, Guid ownerId)
     {
@@ -76,31 +77,31 @@ public class FieldService : IFieldService
         return fields.Select(f => f.AsModel().AsContract()).ToList();
     }
 
-    public async Task<FieldResponseContract> UploadFieldPhotoAsync(Guid fieldId, Guid ownerId, byte[] content, string contentType, string originalFileName)
+    public async Task<FieldResponseContract> UploadFieldPhotoAsync(Guid fieldId, Guid ownerId,bool isAdmin, byte[] content, string contentType, string originalFileName)
     {
-        var fieldEntity = await _fieldRepo.GetByIdAsync(fieldId);
-        if (fieldEntity == null) throw new KeyNotFoundException();
+         var fieldEntity = await _fieldRepo.GetByIdAsync(fieldId);
+            if (fieldEntity == null) throw new KeyNotFoundException();
 
-        if (fieldEntity.OwnerId != ownerId)
-            throw new ForbiddenException("Je kan enkel een foto uploaden voor je eigen terrein.");
+            if (!isAdmin && fieldEntity.OwnerId != ownerId)
+                throw new ForbiddenException("Je kan enkel een foto uploaden voor je eigen terrein.");
 
-        var ext = Path.GetExtension(originalFileName);
-        if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+            var ext = Path.GetExtension(originalFileName);
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
 
-        var blobName = $"fields/{fieldId}/{Guid.NewGuid()}{ext}";
-        var url = await _fieldImageRepo.UploadAsync(content, blobName, contentType);
+            var blobName = $"fields/{fieldId}/{Guid.NewGuid()}{ext}";
+            var url = await _fieldImageRepo.UploadAsync(content, blobName, contentType);
 
-        fieldEntity.ImageUrl = url;
-        await _fieldRepo.UpdateAsync(fieldEntity);
+            fieldEntity.ImageUrl = url;
+            await _fieldRepo.UpdateAsync(fieldEntity);
 
-        return fieldEntity.AsModel().AsContract();
+            return fieldEntity.AsModel().AsContract();
     }
-    public async Task<FieldResponseContract> UpdateFieldAsync(Guid fieldId, FieldUpdateContract update, Guid ownerId)
+    public async Task<FieldResponseContract> UpdateFieldAsync(Guid fieldId, FieldUpdateContract update, Guid ownerId,bool isAdmin)
     {
         var field = await _fieldRepo.GetByIdAsync(fieldId);
         if (field == null) throw new KeyNotFoundException();
 
-        if (field.OwnerId != ownerId)
+        if (!isAdmin && field.OwnerId != ownerId)
             throw new ForbiddenException("Je kan enkel je eigen terrein aanpassen.");
 
         field.Name = update.Name;
@@ -112,14 +113,22 @@ public class FieldService : IFieldService
 
         return field.AsModel().AsContract();
     }
-    public async Task DeleteFieldAsync(Guid id, Guid ownerId)
+    public async Task DeleteFieldAsync(Guid id, Guid ownerId,bool isAdmin)
     {
         var field = await _fieldRepo.GetByIdAsync(id);
         if (field == null) throw new KeyNotFoundException();
 
-        if (field.OwnerId != ownerId)
+        if (!isAdmin && field.OwnerId != ownerId)
             throw new ForbiddenException("Je kan enkel je eigen terrein verwijderen.");
 
         await _fieldRepo.DeleteAsync(id);
+    }
+    public async Task RejectFieldAsync(Guid id)
+    {
+        var ev = await _fieldRepo.GetByIdAsync(id);
+        if (ev is null) throw new KeyNotFoundException("Event not found");
+
+        ev.Status = FieldStatus.Rejected;
+        await _fieldRepo.UpdateAsync(ev);
     }
 }

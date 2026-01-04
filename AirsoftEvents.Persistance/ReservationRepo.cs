@@ -55,9 +55,7 @@ public class ReservationRepo(AirsoftEventsAppDbContext dbContext): IReservationR
     {
         return await dbContext.Reservations.CountAsync(r =>
             r.EventId == eventId &&
-            (r.PaymentStatus == ReservationpaymentStatus.Pending ||
-            r.PaymentStatus == ReservationpaymentStatus.paymentCreated ||
-            r.PaymentStatus == ReservationpaymentStatus.paid)
+            (r.PaymentStatus == ReservationpaymentStatus.paid)
         );
     }
 }

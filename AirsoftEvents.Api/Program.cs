@@ -18,10 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 
 var connectionstring = builder.Configuration.GetConnectionString("DefaultConnection");
-var serverVersion = new MySqlServerVersion(ServerVersion.AutoDetect(connectionstring));
 
 services.AddDbContext<AirsoftEventsAppDbContext>(options =>
-options.UseMySql(connectionstring, serverVersion));
+    options.UseSqlServer(connectionstring)
+);
 
 services.AddOpenApi();
 
@@ -69,7 +69,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateAudience = false,
             NameClaimType = "sub",
-            RoleClaimType = "role", // <<< BELANGRIJK
+            RoleClaimType = "role", 
         };
         options.RequireHttpsMetadata = false;
         options.MapInboundClaims = false;
@@ -100,6 +100,12 @@ services.AddAuthorizationBuilder()
         policy.RequireRole("Admin", "FieldOwner", "Player");
     });
     
+services.AddHttpClient("NotificationApi", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["NotificationService:BaseUrl"]!
+    );
+});
 
 var app = builder.Build();
 

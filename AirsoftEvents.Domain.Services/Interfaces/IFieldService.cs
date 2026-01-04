@@ -9,6 +9,7 @@ public interface IFieldService
     Task<FieldResponseContract?> GetFieldByIdAsync(Guid id);
     Task<List<FieldResponseContract>> GetFieldByOwnerIdAsync(Guid id);
     Task<List<FieldResponseContract>> GetApprovedFieldsAsync();
+    Task<List<FieldResponseContract>> GetApprovedFieldsByIdAsync(Guid id);
     Task ApproveFieldAsync(Guid id);
     Task<FieldResponseContract> UploadFieldPhotoAsync(Guid fieldId, Guid ownerId,bool isAdmin, byte[] content, string contentType, string originalFileName);
     Task<FieldResponseContract> UpdateFieldAsync(Guid fieldId,FieldUpdateContract update, Guid ownerId, bool isAdmin);

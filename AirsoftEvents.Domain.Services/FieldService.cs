@@ -71,6 +71,12 @@ public class FieldService : IFieldService
         await _fieldRepo.UpdateAsync(fieldModel);
     }
 
+    public async Task<List<FieldResponseContract>> GetApprovedFieldsByIdAsync(Guid ownerId)
+    {
+        var fields = await _fieldRepo.GetApprovedFieldsByIdAsync(ownerId, FieldStatus.Approved);
+        return fields.Select(f => f.AsModel().AsContract()).ToList();
+    }
+
     public async Task<List<FieldResponseContract>> GetApprovedFieldsAsync()
     {
         var fields = await _fieldRepo.GetApprovedFieldsAsync();
@@ -96,6 +102,7 @@ public class FieldService : IFieldService
 
             return fieldEntity.AsModel().AsContract();
     }
+
     public async Task<FieldResponseContract> UpdateFieldAsync(Guid fieldId, FieldUpdateContract update, Guid ownerId,bool isAdmin)
     {
         var field = await _fieldRepo.GetByIdAsync(fieldId);

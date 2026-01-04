@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using AirsoftEvents.Domain.Models.Enums;
 using System.Net;
 using System.Security.Cryptography;
+using Microsoft.Identity.Client;
 
 namespace AirsoftEvents.Persistance;
 
@@ -26,6 +27,13 @@ public class FieldRepo(AirsoftEventsAppDbContext dbContext): IFieldRepo
     public async Task<List<Field>> GetApprovedFieldsAsync()
     {
         return await dbContext.Fields.Where(f => f.Status == FieldStatus.Approved).ToListAsync();
+    }
+
+    public async Task<List<Field>> GetApprovedFieldsByIdAsync(Guid ownerId, FieldStatus status)
+    {
+         return await dbContext.Fields
+        .Where(f => f.OwnerId == ownerId && f.Status == status)
+        .ToListAsync();
     }
     public async Task<Field> AddAsync(Field fieldToAdd)
     {

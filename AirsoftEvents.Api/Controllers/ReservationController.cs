@@ -8,6 +8,7 @@ using AirsoftEvents.Persistance.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 
 namespace AirsoftEvents.Api.Controllers;
 
@@ -20,21 +21,24 @@ public class ReservationsController : ControllerBase
     private readonly MockMollieStore _mockMollieStore;
     private readonly MollieOptions _mollieOptions;
 
+    // ✅ nieuw
+    private readonly IHttpClientFactory _httpClientFactory;
+
     public ReservationsController(
         IReservationRepo reservationRepo,
         IEventService eventService,
         MockMollieStore mockMollieStore,
-        IOptions<MollieOptions> mollieOptions)
+        IOptions<MollieOptions> mollieOptions,
+        IHttpClientFactory httpClientFactory 
+    )
     {
         _reservationRepo = reservationRepo;
         _eventService = eventService;
         _mockMollieStore = mockMollieStore;
         _mollieOptions = mollieOptions.Value;
+        _httpClientFactory = httpClientFactory; 
     }
 
-    // ---------------------------
-    // GET api/reservations/{id}
-    // ---------------------------
     [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
@@ -47,9 +51,25 @@ public class ReservationsController : ControllerBase
 
         var isAdmin = User.IsInRole("Admin");
 
-        // enkel eigenaar of admin
         if (!isAdmin && tokenUserId.Value != r.UserId)
             return Forbid();
+
+        object? emailPreview = null;
+
+        if (r.PaymentStatus == ReservationpaymentStatus.paid)
+        {
+            var email = User.FindFirst("email")?.Value;
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                emailPreview = new
+                {
+                    to = email,
+                    subject = "Reservatie bevestigd",
+                    body = $"Je reservatie {r.Id} is betaald en bevestigd."
+                };
+            }
+        }
 
         return Ok(new
         {
@@ -58,14 +78,11 @@ public class ReservationsController : ControllerBase
             userId = r.UserId,
             reservedAt = r.ReservedAt,
             paymentStatus = r.PaymentStatus.ToString(),
-            molliePaymentId = r.MolliePaymentId
+            molliePaymentId = r.MolliePaymentId,
+            emailPreview
         });
     }
 
-    // ---------------------------
-    // POST api/reservations
-    // body: { eventId, userId }
-    // ---------------------------
     [Authorize(Policy = "ApiUserWritePolicy")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ReservationRequestContract body)
@@ -78,11 +95,9 @@ public class ReservationsController : ControllerBase
 
         var isAdmin = User.IsInRole("Admin");
 
-        // user mag enkel voor zichzelf reserveren (tenzij admin)
         if (!isAdmin && tokenUserId.Value != body.UserId)
             return Forbid();
 
-        // availability check via EventService
         var availability = await _eventService.GetAvailabilityAsync(body.EventId);
         if (availability.Free <= 0)
             return BadRequest("Event is volzet.");
@@ -108,9 +123,6 @@ public class ReservationsController : ControllerBase
         });
     }
 
-    // ---------------------------
-    // POST api/reservations/{id}/pay
-    // ---------------------------
     [Authorize(Policy = "ApiUserWritePolicy")]
     [HttpPost("{id:guid}/pay")]
     public async Task<ActionResult<StartPaymentResponseContract>> StartPayment([FromRoute] Guid id)
@@ -123,14 +135,12 @@ public class ReservationsController : ControllerBase
 
         var isAdmin = User.IsInRole("Admin");
 
-        // enkel eigenaar of admin
         if (!isAdmin && tokenUserId.Value != reservation.UserId)
             return Forbid();
 
         if (reservation.PaymentStatus == ReservationpaymentStatus.paid)
             return BadRequest("Reservatie is al betaald.");
 
-        // mock payment
         var payment = _mockMollieStore.Create(reservation.Id);
 
         reservation.MolliePaymentId = payment.PaymentId;
@@ -148,15 +158,11 @@ public class ReservationsController : ControllerBase
         });
     }
 
-    // ---------------------------
-    // Helper: haal GUID userId uit token claims
-    // ---------------------------
     private Guid? GetUserIdFromClaims()
     {
-        // Probeer veelvoorkomende claims. Kies degene die jij ook bij events gebruikt.
         var candidates = new[]
         {
-            User.FindFirst("userId")?.Value, // als jij deze claim zelf toevoegt
+            User.FindFirst("userId")?.Value,
             User.FindFirst("sub")?.Value,
             User.FindFirst("oid")?.Value,
             User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value

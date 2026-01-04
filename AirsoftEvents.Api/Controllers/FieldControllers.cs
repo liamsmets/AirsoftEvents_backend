@@ -58,6 +58,21 @@ public class FieldsController : ControllerBase
         return Ok(field);
     }
 
+    [Authorize(Policy = "ApiReadPolicy")]
+    [HttpGet("mine/approved")]
+    public async Task<IActionResult> GetApprovedFieldsById()
+    {
+        var ownerId = User.GetUserId();
+        var fields = await _service.GetApprovedFieldsByIdAsync(ownerId);
+
+        if (fields == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(fields);
+    }
+
     [AllowAnonymous]
     [HttpGet("Approved")]
     public async Task<IActionResult> GetApprovedFields()

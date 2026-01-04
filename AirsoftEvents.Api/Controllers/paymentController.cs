@@ -17,24 +17,25 @@ public class PaymentsController : ControllerBase
     private readonly MockMollieStore _mockMollieStore;
     private readonly MollieOptions _mollieOptions;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IUserRepo _userRepo;
+    
 
     public PaymentsController(
         IReservationRepo reservationRepo,
         MockMollieStore mockMollieStore,
         IOptions<MollieOptions> mollieOptions,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory, IUserRepo userRepo)
     {
         _reservationRepo = reservationRepo;
         _mockMollieStore = mockMollieStore;
         _mollieOptions = mollieOptions.Value;
         _httpClientFactory = httpClientFactory;
+        _userRepo = userRepo;
     }
 
-    // === 1) WEBHOOK (zoals echte Mollie) ===
-    // Mollie zou een form-post doen met "id=<paymentId>"
     [AllowAnonymous]
     [HttpPost("mollie/webhook")]
-    public async Task<IActionResult> MollieWebhook([FromQuery] string secret, [FromForm] string id)
+    public async Task<IActionResult> MollieWebhook([FromQuery] string secret, [FromForm] string id,[FromQuery] string? email)
     {
         if (secret != _mollieOptions.WebhookSecret) return Unauthorized();
 
@@ -54,15 +55,34 @@ public class PaymentsController : ControllerBase
         };
 
         await _reservationRepo.UpdateAsync(reservation);
+        
+
+        if (reservation.PaymentStatus == ReservationpaymentStatus.paid)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("NotificationApi");
+
+                var payload = new
+                {
+                    To = email,
+                    subject = "Reservation created",
+                    body = $"Reservation {reservation.Id} for event {reservation.EventId} was created."
+                };
+
+                await client.PostAsJsonAsync("/notifications/email", payload);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotificationApi] Failed to send fake email: {ex.Message}");
+            }
+        }
         return Ok();
     }
 
-    // === 2) MOCK PROVIDER TRIGGER (dit simuleert Mollie checkout) ===
-    // frontend mock checkout roept dit aan met status (Paid/Failed/...)
-    // daarna post dit endpoint naar de webhook endpoint
     [AllowAnonymous]
     [HttpPost("mollie/mock/trigger")]
-    public async Task<IActionResult> MockTrigger([FromQuery] string paymentId, [FromQuery] string status)
+    public async Task<IActionResult> MockTrigger([FromQuery] string paymentId, [FromQuery] string status, [FromQuery] string email)
     {
         var mapped = status.ToLowerInvariant() switch
         {
@@ -76,11 +96,10 @@ public class PaymentsController : ControllerBase
         var ok = _mockMollieStore.UpdateStatus(paymentId, mapped);
         if (!ok) return NotFound("Unknown paymentId");
 
-        // DOE ECHT EEN HTTP POST NAAR JE WEBHOOK (zodat je webhook bewezen werkt)
         var client = _httpClientFactory.CreateClient();
 
         var webhookUrl =
-            $"{_mollieOptions.BackendBaseUrl}/api/payments/mollie/webhook?secret={_mollieOptions.WebhookSecret}";
+            $"{_mollieOptions.BackendBaseUrl}/api/payments/mollie/webhook?secret={_mollieOptions.WebhookSecret}&email={Uri.EscapeDataString(email)}";
 
         var form = new FormUrlEncodedContent(new[]
         {

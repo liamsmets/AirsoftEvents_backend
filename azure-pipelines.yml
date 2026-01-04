@@ -1,0 +1,52 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '10.x'
+
+# --- API ---
+- task: DotNetCoreCLI@2
+  displayName: 'Publish API'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'AirsoftEvents.Api/AirsoftEvents.Api.csproj'
+    arguments: '-c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/api'
+    zipAfterPublish: true
+
+# --- IS ---
+- task: DotNetCoreCLI@2
+  displayName: 'Publish IdentityServer'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'IS/IS.csproj'
+    arguments: '-c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/is'
+    zipAfterPublish: true
+
+# --- Notifications ---
+- task: DotNetCoreCLI@2
+  displayName: 'Publish Notifications'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'AirsoftEvents.Notifications.Api/AirsoftEvents.Notifications.Api.csproj'
+    arguments: '-c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/notif'
+    zipAfterPublish: true
+
+# Upload zips as artifacts
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish artifacts'
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'

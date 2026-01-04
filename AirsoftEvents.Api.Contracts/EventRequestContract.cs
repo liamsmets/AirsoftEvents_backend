@@ -10,6 +10,5 @@ public class EventRequestContract
     public decimal Price {get;set;}
     public int MaxPlayers {get;set;}
     public Guid FieldId {get;set;}
-
     public Guid UserId {get;set;}
 }

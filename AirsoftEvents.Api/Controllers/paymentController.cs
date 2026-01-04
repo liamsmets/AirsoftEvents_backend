@@ -98,8 +98,17 @@ public class PaymentsController : ControllerBase
 
         var client = _httpClientFactory.CreateClient();
 
+        var req = HttpContext.Request;
+        var requestBase = $"{req.Scheme}://{req.Host}";
+
+        var backendBase = string.IsNullOrWhiteSpace(_mollieOptions.BackendBaseUrl)
+            ? requestBase
+            : _mollieOptions.BackendBaseUrl.TrimEnd('/');
+
         var webhookUrl =
-            $"{_mollieOptions.BackendBaseUrl}/api/payments/mollie/webhook?secret={_mollieOptions.WebhookSecret}&email={Uri.EscapeDataString(email)}";
+            $"{backendBase}/api/payments/mollie/webhook" +
+            $"?secret={_mollieOptions.WebhookSecret}" +
+            $"&email={Uri.EscapeDataString(email)}";
 
         var form = new FormUrlEncodedContent(new[]
         {

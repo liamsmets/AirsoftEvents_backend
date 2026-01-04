@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using AirsoftEvents.Api.Options;
 using AirsoftEvents.Api.Payments;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,7 +47,9 @@ services.Configure<FieldImageStorageOptions>(
 services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-services.Configure<MollieOptions>(builder.Configuration.GetSection("Mollie"));
+services.Configure<MollieOptions>(
+    builder.Configuration.GetSection("Mollie"));
+builder.Services.AddHttpContextAccessor();
 
 services.AddSingleton<MockMollieStore>();
 
@@ -109,6 +112,10 @@ services.AddHttpClient("NotificationApi", client =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+});
 
 app.MapOpenApi();
 app.MapScalarApiReference();

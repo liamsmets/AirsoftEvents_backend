@@ -99,11 +99,17 @@ services.AddAuthorizationBuilder()
         policy.RequireClaim("scope", "airsoftevents.api.admin");
         policy.RequireRole("Admin");
     })
-    .AddPolicy("ApiUserWritePolicy", policy =>
+    .AddPolicy("ApiWritePolicy", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireClaim("scope", "airsoftevents.api.write");
-        policy.RequireRole("Admin", "FieldOwner", "Player");
+        policy.RequireAssertion(ctx =>
+        {
+            var scopes = ctx.User.FindAll("scope").Select(c => c.Value);
+            return scopes.Any(v =>
+                v.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Contains("airsoftevents.api.write"));
+        });
+        policy.RequireRole("Admin", "FieldOwner");
     });
     
 services.AddHttpClient("NotificationApi", client =>

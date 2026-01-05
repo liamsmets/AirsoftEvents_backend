@@ -78,6 +78,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         // In prod moet dit TRUE zijn (want je IS draait op https)
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.MapInboundClaims = false;
     });
 
 services.AddAuthorizationBuilder()

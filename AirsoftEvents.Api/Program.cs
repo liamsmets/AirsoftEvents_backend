@@ -14,9 +14,11 @@ using AirsoftEvents.Api.Options;
 using AirsoftEvents.Api.Payments;
 using Microsoft.AspNetCore.HttpOverrides;
 
-
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+
+var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+var idpAuthority = builder.Configuration["Identity:Authority"] ?? "https://localhost:5001";
 
 var connectionstring = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -55,27 +57,28 @@ services.AddSingleton<MockMollieStore>();
 
 services.AddCors(options =>
 {
-    options.AddDefaultPolicy(
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:5173");
-            policy.AllowAnyHeader();
-            policy.AllowAnyMethod();
-        });
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(frontendBaseUrl.TrimEnd('/'))
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-       options.Authority = "https://localhost:5001";
+        options.Authority = idpAuthority.TrimEnd('/');
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = false,
             NameClaimType = "sub",
-            RoleClaimType = "role", 
+            RoleClaimType = "role",
         };
-        options.RequireHttpsMetadata = false;
-        options.MapInboundClaims = false;
+
+        // In prod moet dit TRUE zijn (want je IS draait op https)
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.MapInboundClaims = true;
     });
 
 services.AddAuthorizationBuilder()

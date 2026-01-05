@@ -39,7 +39,7 @@ public class ReservationsController : ControllerBase
         _httpClientFactory = httpClientFactory; 
     }
 
-    [Authorize]
+    [Authorize(Policy = "ApiReadPolicy")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {

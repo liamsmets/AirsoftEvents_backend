@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace AirsoftEvents.Persistance.Entities.Migrations
 {
-    /// <inheritdoc />
+   
     public partial class InitAzureSql : Migration
     {
-        /// <inheritdoc />
+        
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -102,7 +102,6 @@ namespace AirsoftEvents.Persistance.Entities.Migrations
                 column: "EventId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

@@ -20,8 +20,6 @@ public class ReservationsController : ControllerBase
     private readonly IEventService _eventService;
     private readonly MockMollieStore _mockMollieStore;
     private readonly MollieOptions _mollieOptions;
-
-    // ✅ nieuw
     private readonly IHttpClientFactory _httpClientFactory;
 
     public ReservationsController(

@@ -102,6 +102,6 @@ public class Index : PageModel
             return Redirect(Input.ReturnUrl);
         }
 
-        return Redirect("http://localhost:5173/");
+        return Redirect("https://blobstorageairsoft.z28.web.core.windows.net/");
     }
 }

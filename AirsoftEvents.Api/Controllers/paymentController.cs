@@ -114,12 +114,8 @@ public class PaymentsController : ControllerBase
         {
             new KeyValuePair<string, string>("id", paymentId)
         });
-
-        // sommige setups hebben self-signed dev cert issues met https->https.
-        // Als je daar last van hebt: zet BackendBaseUrl tijdelijk op http.
         var resp = await client.PostAsync(webhookUrl, form);
 
-        // altijd ok terug naar frontend
         return Ok(new { webhookCalled = resp.IsSuccessStatusCode });
     }
 }

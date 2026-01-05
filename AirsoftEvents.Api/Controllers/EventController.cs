@@ -107,7 +107,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] EventUpdateContract update)
     {
         var organizerId = User.GetUserId();
-        var isAdmin = User.IsInRole("Admin"); // zie note hieronder
+        var isAdmin = User.IsInRole("Admin"); 
 
         try
         {
@@ -129,7 +129,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
     {
         var organizerId = User.GetUserId();
-        var isAdmin = User.IsInRole("Admin"); // zie note hieronder
+        var isAdmin = User.IsInRole("Admin"); 
 
         try
         {
@@ -190,8 +190,8 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         var weather = await _weatherService.GetWeatherForDateAsync(datum.Date, lat, lon);
 
         if (weather is null)
-            return NoContent(); // ✅ 204, GEEN body
+            return NoContent(); 
 
-        return Ok(weather); // ✅ 200 + JSON
+        return Ok(weather); 
     }
 }

@@ -138,7 +138,7 @@ public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo
         var ev = await eventRepo.GetByIdAsync(id);
         if (ev is null) throw new KeyNotFoundException("Event not found");
 
-        ev.Status = EventStatus.Rejected; // of hoe je enum heet
+        ev.Status = EventStatus.Rejected;
         await eventRepo.UpdateAsync(ev);
     }
 }

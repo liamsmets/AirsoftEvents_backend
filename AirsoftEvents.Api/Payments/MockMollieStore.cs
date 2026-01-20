@@ -4,7 +4,7 @@ namespace AirsoftEvents.Api.Payments;
 
 public enum MockMolliePaymentStatus
 {
-    Open,
+    Pending,
     Paid,
     Failed,
     Canceled,
@@ -20,7 +20,7 @@ public class MockMollieStore
     public MockMolliePayment Create(Guid reservationId)
     {
         var paymentId = "tr_" + Guid.NewGuid().ToString("N");
-        var payment = new MockMolliePayment(paymentId, reservationId, MockMolliePaymentStatus.Open);
+        var payment = new MockMolliePayment(paymentId, reservationId, MockMolliePaymentStatus.Pending);
         _payments[paymentId] = payment;
         return payment;
     }

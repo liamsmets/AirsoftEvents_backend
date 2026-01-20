@@ -16,32 +16,29 @@ namespace AirsoftEvents.Api.Controllers;
 [Route("api/reservations")]
 public class ReservationsController : ControllerBase
 {
-    private readonly IReservationRepo _reservationRepo;
+    private readonly IReservationService _reservationService;
     private readonly IEventService _eventService;
     private readonly MockMollieStore _mockMollieStore;
     private readonly MollieOptions _mollieOptions;
-    private readonly IHttpClientFactory _httpClientFactory;
 
     public ReservationsController(
-        IReservationRepo reservationRepo,
+        IReservationService reservationService,
         IEventService eventService,
         MockMollieStore mockMollieStore,
-        IOptions<MollieOptions> mollieOptions,
-        IHttpClientFactory httpClientFactory 
+        IOptions<MollieOptions> mollieOptions
     )
     {
-        _reservationRepo = reservationRepo;
+        _reservationService = reservationService;
         _eventService = eventService;
         _mockMollieStore = mockMollieStore;
         _mollieOptions = mollieOptions.Value;
-        _httpClientFactory = httpClientFactory; 
     }
 
     [Authorize(Policy = "ApiReadPolicy")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
-        var r = await _reservationRepo.GetByIdAsync(id);
+        var r = await _reservationService.GetReservationByIdAsync(id);
         if (r == null) return NotFound();
 
         var tokenUserId = GetUserIdFromClaims();
@@ -52,22 +49,6 @@ public class ReservationsController : ControllerBase
         if (!isAdmin && tokenUserId.Value != r.UserId)
             return Forbid();
 
-        object? emailPreview = null;
-
-        if (r.PaymentStatus == ReservationpaymentStatus.paid)
-        {
-            var email = User.FindFirst("email")?.Value;
-
-            if (!string.IsNullOrWhiteSpace(email))
-            {
-                emailPreview = new
-                {
-                    to = email,
-                    subject = "Reservatie bevestigd",
-                    body = $"Je reservatie {r.Id} is betaald en bevestigd."
-                };
-            }
-        }
 
         return Ok(new
         {
@@ -77,7 +58,6 @@ public class ReservationsController : ControllerBase
             reservedAt = r.ReservedAt,
             paymentStatus = r.PaymentStatus.ToString(),
             molliePaymentId = r.MolliePaymentId,
-            emailPreview
         });
     }
 
@@ -85,69 +65,53 @@ public class ReservationsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ReservationRequestContract body)
     {
-        if (body.EventId == Guid.Empty || body.UserId == Guid.Empty)
-            return BadRequest("eventId en userId zijn verplicht.");
+        
+        if (body.EventId == Guid.Empty)
+            return BadRequest("eventId is verplicht.");
 
         var tokenUserId = GetUserIdFromClaims();
         if (tokenUserId == null) return Unauthorized("No valid user id in token.");
-
-        var isAdmin = User.IsInRole("Admin");
-
-        if (!isAdmin && tokenUserId.Value != body.UserId)
-            return Forbid();
 
         var availability = await _eventService.GetAvailabilityAsync(body.EventId);
         if (availability.Free <= 0)
             return BadRequest("Event is volzet.");
 
-        var reservation = new Reservation
-        {
-            Id = Guid.NewGuid(),
-            EventId = body.EventId,
-            UserId = body.UserId,
-            ReservedAt = DateTime.UtcNow,
-            PaymentStatus = ReservationpaymentStatus.Pending
-        };
+        var userId = tokenUserId;
 
-        await _reservationRepo.AddAsync(reservation);
+        var created = await _reservationService.CreateReservationAsync(body, tokenUserId.Value);
+        var mockPayment = _mockMollieStore.Create(created.Id);
+        await _reservationService.UpdatePaymentStatusAsync(
+             created.Id, 
+             mockPayment.PaymentId, 
+             ReservationpaymentStatus.paid
+        );
 
-        return CreatedAtAction(nameof(GetById), new { id = reservation.Id }, new
-        {
-            id = reservation.Id,
-            eventId = reservation.EventId,
-            userId = reservation.UserId,
-            reservedAt = reservation.ReservedAt,
-            paymentStatus = reservation.PaymentStatus.ToString()
-        });
+        created.MolliePaymentId = mockPayment.PaymentId; 
+        created.PaymentStatus = ReservationpaymentStatus.paid;
+
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [Authorize(Policy = "ApiUserWritePolicy")]
     [HttpPost("{id:guid}/pay")]
     public async Task<ActionResult<StartPaymentResponseContract>> StartPayment([FromRoute] Guid id)
     {
-        var reservation = await _reservationRepo.GetByIdAsync(id);
-        if (reservation == null) return NotFound();
+        var reservationContract = await _reservationService.GetReservationByIdAsync(id);
+        if (reservationContract == null) return NotFound();
 
         var tokenUserId = GetUserIdFromClaims();
-        if (tokenUserId == null) return Unauthorized("No valid user id in token.");
-
+        if (tokenUserId == null) return Unauthorized();
         var isAdmin = User.IsInRole("Admin");
+        if (!isAdmin && tokenUserId.Value != reservationContract.UserId) return Forbid();
 
-        if (!isAdmin && tokenUserId.Value != reservation.UserId)
-            return Forbid();
-
-        if (reservation.PaymentStatus == ReservationpaymentStatus.paid)
+        if (reservationContract.PaymentStatus == ReservationpaymentStatus.paid) 
             return BadRequest("Reservatie is al betaald.");
 
-        var payment = _mockMollieStore.Create(reservation.Id);
+        var payment = _mockMollieStore.Create(reservationContract.Id);
 
-        reservation.MolliePaymentId = payment.PaymentId;
-        reservation.PaymentStatus = ReservationpaymentStatus.paymentCreated;
-        await _reservationRepo.UpdateAsync(reservation);
+        await _reservationService.UpdatePaymentStatusAsync(reservationContract.Id, payment.PaymentId, ReservationpaymentStatus.paymentCreated);
 
-        var checkoutUrl =
-            $"{_mollieOptions.RedirectBaseUrl}/payment/mock" +
-            $"?reservationId={reservation.Id}&paymentId={payment.PaymentId}";
+        var checkoutUrl = $"{_mollieOptions.RedirectBaseUrl}/payment/checkout?reservationId={reservationContract.Id}&paymentId={payment.PaymentId}";
 
         return Ok(new StartPaymentResponseContract
         {

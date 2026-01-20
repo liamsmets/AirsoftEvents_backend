@@ -11,8 +11,7 @@ public static class ReservationMappingExtensions
     {
         return new ReservationModel
         {
-            EventId = request.EventId,
-            UserId = request.UserId
+            EventId = request.EventId
         };
     }
 

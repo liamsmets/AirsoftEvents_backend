@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using AirsoftEvents.Api.Extensions;
-using AirsoftEvents.Persistance.Entities;          // jouw LogEntry.cs namespace
-using AirsoftEvents.Persistance.Interface;         // jouw ILogRepo namespace
+using AirsoftEvents.Persistance.Entities;          
+using AirsoftEvents.Persistance.Interface; 
 
 namespace AirsoftEvents.Api.Middleware;
 

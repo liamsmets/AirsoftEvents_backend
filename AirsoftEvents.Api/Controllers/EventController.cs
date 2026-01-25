@@ -6,6 +6,9 @@ using AirsoftEvents.Domain.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using AirsoftEvents.Api.Extensions;
+using CsvHelper;
+using System.Text;
+using System.Globalization;
 
 
 namespace AirsoftEvents.Api.Controllers;
@@ -27,15 +30,11 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         }
         catch (ForbiddenException ex)
         {
-            return StatusCode(403, new { error = ex.Message });
+            return Forbid(ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (Exception ex) when (ex.GetType().Name == "TerrainNotApprovedException" || ex.GetType().Name == "CapacityExceededException")
-        {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(ex.Message);
         }
     }
 
@@ -43,7 +42,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     [HttpGet("upcoming")]
     public async Task<IActionResult> GetUpcomingEvents()
     {
-        var events = await _service.GetUpcomingEventsAsync(EventStatus.Approved);
+        var events = await _service.GetUpcomingEventsAsync();
         return Ok(events);
     }
 
@@ -70,11 +69,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> GetEventById([FromRoute] Guid id)
     {
         var eventItem = await _service.GetEventByIdAsync(id);
-
-        if (eventItem == null)
-        {
-            return NotFound();
-        }
+        if (eventItem is null) return NotFound();
 
         return Ok(eventItem);
     }
@@ -83,15 +78,9 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     [HttpPut("{id}/approve")]
     public async Task<IActionResult> ApproveEvent([FromRoute] Guid id)
     {
-        try
-        {
-            await _service.ApproveEventAsync(id);
-            return NoContent();
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        await _service.ApproveEventAsync(id);
+        return NoContent();
+
     }
 
     [Authorize(Policy = "ApiWritePolicy")]
@@ -107,21 +96,11 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> UpdateEvent([FromRoute] Guid id, [FromBody] EventUpdateContract update)
     {
         var organizerId = User.GetUserId();
-        var isAdmin = User.IsInRole("Admin"); 
+        var isAdmin = User.IsInRole("Admin");
 
-        try
-        {
-            var updated = await _service.UpdateEventAsync(id, update, organizerId, isAdmin);
-            return Ok(updated);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (ForbiddenException ex)
-        {
-            return StatusCode(403, new { error = ex.Message });
-        }
+        var updated = await _service.UpdateEventAsync(id, update, organizerId, isAdmin);
+        return Ok(updated);
+
     }
 
     [Authorize(Policy = "ApiWritePolicy")]
@@ -129,41 +108,25 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     public async Task<IActionResult> DeleteEvent([FromRoute] Guid id)
     {
         var organizerId = User.GetUserId();
-        var isAdmin = User.IsInRole("Admin"); 
+        var isAdmin = User.IsInRole("Admin");
 
-        try
-        {
-            await _service.DeleteEventAsync(id, organizerId, isAdmin);
-            return NoContent();
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (ForbiddenException ex)
-        {
-            return StatusCode(403, new { error = ex.Message });
-        }
+        await _service.DeleteEventAsync(id, organizerId, isAdmin);
+        return NoContent();
+
     }
 
     [AllowAnonymous]
     [HttpGet("{id}/availability")]
-    public async Task<IActionResult> GetAvailability(Guid id)
+    public async Task<IActionResult> GetAvailability([FromRoute] Guid id)
     {
-        try
-        {
-            var dto = await _service.GetAvailabilityAsync(id);
-            return Ok(dto);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        var dto = await _service.GetAvailabilityAsync(id);
+        return Ok(dto);
+
     }
 
     [AllowAnonymous]
     [HttpGet("{eventId}/weather")]
-    public async Task<IActionResult> GetWeatherForEvent(Guid eventId)
+    public async Task<IActionResult> GetWeatherForEvent([FromRoute] Guid eventId)
     {
         var ev = await _service.GetEventByIdAsync(eventId);
         if (ev is null) return NotFound();
@@ -171,7 +134,7 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
         const double lat = 50.9368;
         const double lon = 4.0397;
 
-        var weather = await _weatherService.GetWeatherForDateAsync(ev.Date.Date, lat, lon);
+        var weather = await _weatherService.GetWeatherForDateAsync(ev.Date, lat, lon);
         if (weather is null) return NoContent();
 
         return Ok(weather);
@@ -181,17 +144,50 @@ public class EventsController(IEventService _service, IWeatherService _weatherSe
     [HttpGet("weather")]
     public async Task<IActionResult> GetWeatherPreview([FromQuery] DateTime datum)
     {
-        if (datum == default)
-            return BadRequest("Query parameter 'datum' is verplicht (YYYY-MM-DD).");
+        if (datum == default) return BadRequest("Query parameter 'datum' is verplicht (YYYY-MM-DD).");
 
         const double lat = 50.9368;
         const double lon = 4.0397;
 
         var weather = await _weatherService.GetWeatherForDateAsync(datum.Date, lat, lon);
 
-        if (weather is null)
-            return NoContent(); 
+        if (weather is null) return NoContent();
 
-        return Ok(weather); 
+        return Ok(weather);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("upcoming/export")]
+    public async Task<IActionResult> ExportUpcomingEvents([FromQuery] string? searchTerm)
+    {
+        var events = await _service.GetUpcomingEventsAsync();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            events = events.Where(e => e.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        var memoryStream = new MemoryStream();
+
+        var streamWriter = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
+        var csvWriter = new CsvWriter(streamWriter, new CultureInfo("nl-BE"));
+
+        var exportData = events.Select(e => new
+        {
+            Id = e.Id,
+            Naam = e.Name,
+            Datum = e.Date.ToShortDateString(),
+            Prijs = e.Price,
+            Locatie = e.FieldId,
+            Beschrijving = e.Description
+        });
+
+        await csvWriter.WriteRecordsAsync(exportData);
+
+        await streamWriter.FlushAsync();
+
+        memoryStream.Position = 0;
+
+        return File(memoryStream, "text/csv", $"upcoming_events_{DateTime.Now:yyyyMMdd}.csv");
     }
 }

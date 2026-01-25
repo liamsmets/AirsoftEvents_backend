@@ -9,11 +9,10 @@ public static class UserExtensions
         var sub = user.FindFirstValue("sub") 
                   ?? throw new UnauthorizedAccessException("No 'sub' claim found in token.");
 
-        if (!Guid.TryParse(sub, out var guidUserId))
+        if (Guid.TryParse(sub, out var guid))
         {
-            throw new UnauthorizedAccessException("The 'sub' claim is not a valid Guid.");
+            return guid;
         }
-
-        return guidUserId;
+        return Guid.Empty;
     }
 }

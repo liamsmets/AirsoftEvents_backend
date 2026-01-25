@@ -21,7 +21,7 @@ public static class EventMappingExtensions
             Date = request.Date,
             Price = request.Price,
             MaxPlayers = request.MaxPlayers,
-            FieldId = request.FieldId 
+            FieldId = request.FieldId
         };
     }
 
@@ -51,7 +51,7 @@ public static class EventMappingExtensions
             Date = eventEntity.Date,
             Price = eventEntity.Price,
             Status = eventEntity.Status,
-            FieldId = eventEntity.FieldId ,
+            FieldId = eventEntity.FieldId,
             MaxPlayers = eventEntity.MaxPlayers,
             UserId = eventEntity.UserId
         };

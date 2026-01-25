@@ -52,6 +52,17 @@ public class FieldService : IFieldService
 
         return field.AsModel().AsContract();
     }
+     public async Task<List<FieldResponseContract>> GetApprovedFieldsByIdAsync(Guid ownerId)
+    {
+        var fields = await _fieldRepo.GetApprovedFieldsByIdAsync(ownerId, FieldStatus.Approved);
+        return fields.Select(f => f.AsModel().AsContract()).ToList();
+    }
+
+    public async Task<List<FieldResponseContract>> GetApprovedFieldsAsync()
+    {
+        var fields = await _fieldRepo.GetApprovedFieldsAsync();
+        return fields.Select(f => f.AsModel().AsContract()).ToList();
+    }
     public async Task<List<FieldResponseContract>> GetFieldByOwnerIdAsync(Guid id)
     {
         var fields = await _fieldRepo.GetByOwnerId(id);
@@ -71,16 +82,13 @@ public class FieldService : IFieldService
         await _fieldRepo.UpdateAsync(fieldModel);
     }
 
-    public async Task<List<FieldResponseContract>> GetApprovedFieldsByIdAsync(Guid ownerId)
+    public async Task RejectFieldAsync(Guid id)
     {
-        var fields = await _fieldRepo.GetApprovedFieldsByIdAsync(ownerId, FieldStatus.Approved);
-        return fields.Select(f => f.AsModel().AsContract()).ToList();
-    }
+        var ev = await _fieldRepo.GetByIdAsync(id);
+        if (ev is null) throw new KeyNotFoundException("Event not found");
 
-    public async Task<List<FieldResponseContract>> GetApprovedFieldsAsync()
-    {
-        var fields = await _fieldRepo.GetApprovedFieldsAsync();
-        return fields.Select(f => f.AsModel().AsContract()).ToList();
+        ev.Status = FieldStatus.Rejected;
+        await _fieldRepo.UpdateAsync(ev);
     }
 
     public async Task<FieldResponseContract> UploadFieldPhotoAsync(Guid fieldId, Guid ownerId,bool isAdmin, byte[] content, string contentType, string originalFileName)
@@ -130,12 +138,5 @@ public class FieldService : IFieldService
 
         await _fieldRepo.DeleteAsync(id);
     }
-    public async Task RejectFieldAsync(Guid id)
-    {
-        var ev = await _fieldRepo.GetByIdAsync(id);
-        if (ev is null) throw new KeyNotFoundException("Event not found");
-
-        ev.Status = FieldStatus.Rejected;
-        await _fieldRepo.UpdateAsync(ev);
-    }
+    
 }

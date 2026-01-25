@@ -8,42 +8,44 @@ using AirsoftEvents.Api.Contracts;
 
 namespace AirsoftEvents.Domain.Services;
 
-public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IUserRepo userRepo, IReservationRepo reservationRepo) : IEventService
+public class EventService (IEventRepo eventRepo, IFieldRepo fieldRepo, IReservationRepo reservationRepo) : IEventService
 {
     
     public async Task<EventResponseContract> CreateEventAsync(EventRequestContract eventRequest, Guid userId)
     {
-        var user = await userRepo.GetByIdAsync(userId);
-        
-        
-
         var newEvent = eventRequest.AsModel().AsEntity();
 
         var field = await fieldRepo.GetByIdAsync(newEvent.FieldId);
+
         if (field == null)
+        {
             throw new ArgumentException("Terrein niet gevonden");
-
-        if (field.Status != FieldStatus.Approved)
+        }else if(field.Status != FieldStatus.Approved)
+        {
             throw new TerrainNotApprovedException("Terrein is niet goedgekeurd");
-
-        if (newEvent.MaxPlayers > field.Capacity)
+        }else if(newEvent.MaxPlayers > field.Capacity)
+        {
             throw new CapacityExceededException("Te veel spelers voor dit terrein");
+        }else
+        {
+            newEvent.Id = Guid.NewGuid();
+            newEvent.Status = EventStatus.Pending;
 
-        newEvent.Id = Guid.NewGuid();
-        newEvent.Status = EventStatus.Pending;
+            newEvent.UserId = userId;
 
-        newEvent.UserId = userId;
-
-        var createdEvent = await eventRepo.AddAsync(newEvent);
-        return createdEvent.AsModel().AsContract();
+            var createdEvent = await eventRepo.AddAsync(newEvent);
+            return createdEvent.AsModel().AsContract();
+        }
     }
 
 
-    public async Task<List<EventResponseContract>> GetUpcomingEventsAsync(EventStatus eventStatus)
+    public async Task<List<EventResponseContract>> GetUpcomingEventsAsync()
     {
         var events = await eventRepo.GetApprovedEventsAsync();
+
+        var upcomingEvents = events.Where(e => e.Date >= DateTime.Now);
     
-        return events.Select(e => e.AsModel().AsContract()).ToList();
+        return upcomingEvents.Select(e => e.AsModel().AsContract()).ToList();
     }
 
     public async Task<List<EventResponseContract>> GetAllEventsAsync()

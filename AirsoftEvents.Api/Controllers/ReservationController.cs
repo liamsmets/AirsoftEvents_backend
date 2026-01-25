@@ -1,14 +1,14 @@
 using AirsoftEvents.Api.Contracts;
-using AirsoftEvents.Api.Options;
-using AirsoftEvents.Api.Payments;
 using AirsoftEvents.Domain.Models.Enums;
 using AirsoftEvents.Domain.Services.Interfaces;
-using AirsoftEvents.Persistance.Entities;
-using AirsoftEvents.Persistance.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Json;
+using Mollie.Api.Client.Abstract;
+using Mollie.Api.Models;
+using Mollie.Api.Models.Payment.Request;
+using AirsoftEvents.Api.Options;
+using AirsoftEvents.Api.Extensions;
 
 namespace AirsoftEvents.Api.Controllers;
 
@@ -18,19 +18,19 @@ public class ReservationsController : ControllerBase
 {
     private readonly IReservationService _reservationService;
     private readonly IEventService _eventService;
-    private readonly MockMollieStore _mockMollieStore;
+    private readonly IPaymentClient _molliePaymentClient;
     private readonly MollieOptions _mollieOptions;
 
     public ReservationsController(
         IReservationService reservationService,
         IEventService eventService,
-        MockMollieStore mockMollieStore,
+        IPaymentClient molliePaymentClient,
         IOptions<MollieOptions> mollieOptions
     )
     {
         _reservationService = reservationService;
         _eventService = eventService;
-        _mockMollieStore = mockMollieStore;
+        _molliePaymentClient = molliePaymentClient;
         _mollieOptions = mollieOptions.Value;
     }
 
@@ -41,12 +41,12 @@ public class ReservationsController : ControllerBase
         var r = await _reservationService.GetReservationByIdAsync(id);
         if (r == null) return NotFound();
 
-        var tokenUserId = GetUserIdFromClaims();
-        if (tokenUserId == null) return Unauthorized("No valid user id in token.");
+        var tokenUserId = User.GetUserId();
+        if (tokenUserId == Guid.Empty) return Unauthorized("No valid user id in token.");
 
         var isAdmin = User.IsInRole("Admin");
 
-        if (!isAdmin && tokenUserId.Value != r.UserId)
+        if (!isAdmin && tokenUserId != r.UserId)
             return Forbid();
 
 
@@ -65,29 +65,18 @@ public class ReservationsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ReservationRequestContract body)
     {
-        
+
         if (body.EventId == Guid.Empty)
             return BadRequest("eventId is verplicht.");
 
-        var tokenUserId = GetUserIdFromClaims();
-        if (tokenUserId == null) return Unauthorized("No valid user id in token.");
+        var tokenUserId = User.GetUserId();
+        if (tokenUserId == Guid.Empty) return Unauthorized("No valid user id in token.");
 
         var availability = await _eventService.GetAvailabilityAsync(body.EventId);
         if (availability.Free <= 0)
             return BadRequest("Event is volzet.");
 
-        var userId = tokenUserId;
-
-        var created = await _reservationService.CreateReservationAsync(body, tokenUserId.Value);
-        var mockPayment = _mockMollieStore.Create(created.Id);
-        await _reservationService.UpdatePaymentStatusAsync(
-             created.Id, 
-             mockPayment.PaymentId, 
-             ReservationpaymentStatus.paid
-        );
-
-        created.MolliePaymentId = mockPayment.PaymentId; 
-        created.PaymentStatus = ReservationpaymentStatus.paid;
+        var created = await _reservationService.CreateReservationAsync(body, tokenUserId);
 
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
@@ -96,46 +85,40 @@ public class ReservationsController : ControllerBase
     [HttpPost("{id:guid}/pay")]
     public async Task<ActionResult<StartPaymentResponseContract>> StartPayment([FromRoute] Guid id)
     {
-        var reservationContract = await _reservationService.GetReservationByIdAsync(id);
-        if (reservationContract == null) return NotFound();
+        var reservation = await _reservationService.GetReservationByIdAsync(id);
+        if (reservation == null) return NotFound();
 
-        var tokenUserId = GetUserIdFromClaims();
-        if (tokenUserId == null) return Unauthorized();
+        var tokenUserId = User.GetUserId();
+        if (tokenUserId == Guid.Empty) return Unauthorized();
         var isAdmin = User.IsInRole("Admin");
-        if (!isAdmin && tokenUserId.Value != reservationContract.UserId) return Forbid();
+        if (!isAdmin && tokenUserId != reservation.UserId) return Forbid();
 
-        if (reservationContract.PaymentStatus == ReservationpaymentStatus.paid) 
+        if (reservation.PaymentStatus == ReservationpaymentStatus.paid)
             return BadRequest("Reservatie is al betaald.");
 
-        var payment = _mockMollieStore.Create(reservationContract.Id);
+        var eventItem = await _eventService.GetEventByIdAsync(reservation.EventId);
 
-        await _reservationService.UpdatePaymentStatusAsync(reservationContract.Id, payment.PaymentId, ReservationpaymentStatus.paymentCreated);
+        var paymentRequest = new PaymentRequest()
+        {
+            Amount = new Amount(Currency.EUR, eventItem!.Price),
+            Description = $"Reservering {eventItem.Name}",
+            RedirectUrl = $"{_mollieOptions.RedirectBaseUrl}/payment/return?reservationId={id}",
+            WebhookUrl = _mollieOptions.WebhookUrl,
+            Metadata = id.ToString()
+        };
 
-        var checkoutUrl = $"{_mollieOptions.RedirectBaseUrl}/payment/checkout?reservationId={reservationContract.Id}&paymentId={payment.PaymentId}";
+        var mollieResponse = await _molliePaymentClient.CreatePaymentAsync(paymentRequest);
+
+        await _reservationService.UpdatePaymentStatusAsync(
+            reservation.Id,
+            mollieResponse.Id,
+            ReservationpaymentStatus.paymentCreated
+        );
 
         return Ok(new StartPaymentResponseContract
         {
-            CheckoutUrl = checkoutUrl,
-            PaymentId = payment.PaymentId
+            CheckoutUrl = mollieResponse.Links.Checkout?.Href ?? "",
+            PaymentId = mollieResponse.Id
         });
-    }
-
-    private Guid? GetUserIdFromClaims()
-    {
-        var candidates = new[]
-        {
-            User.FindFirst("userId")?.Value,
-            User.FindFirst("sub")?.Value,
-            User.FindFirst("oid")?.Value,
-            User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value
-        };
-
-        foreach (var c in candidates)
-        {
-            if (!string.IsNullOrWhiteSpace(c) && Guid.TryParse(c, out var g))
-                return g;
-        }
-
-        return null;
     }
 }

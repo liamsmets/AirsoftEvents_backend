@@ -4,18 +4,36 @@ using AirsoftEvents.Persistance;
 using AirsoftEvents.Persistance.Entities;
 using AirsoftEvents.Persistance.Interface;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
-using AirsoftEvents.Api.Options;
-using AirsoftEvents.Api.Payments;
 using Microsoft.AspNetCore.HttpOverrides;
+using Mollie.Api.Client.Abstract;
+using Mollie.Api.Client;
+using AirsoftEvents.Api.Options;
+using Serilog;
+using AirsoftEvents.Api.Extensions;
+
+Serilog.Debugging.SelfLog.Enable(msg => Console.WriteLine($"[SERILOG ERROR] {msg}"));
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.AzureCosmosDB(
+        endpointUrl: new Uri(builder.Configuration["Cosmos:EndpointUrl"]!),
+        authorizationKey: builder.Configuration["Cosmos:AuthorizationKey"],
+        databaseName: builder.Configuration["Cosmos:DatabaseName"] ?? "airsoft",
+        collectionName: builder.Configuration["Cosmos:ContainerName"] ?? "logs"
+    )
+    .CreateLogger();
+
+
+builder.Host.UseSerilog();
+
 
 var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
 var idpAuthority = builder.Configuration["Identity:Authority"] ?? "https://localhost:5001";
@@ -27,21 +45,18 @@ services.AddDbContext<AirsoftEventsAppDbContext>(options =>
 );
 
 services.AddOpenApi();
-
 services.AddHttpClient();
 services.AddHttpClient<IWeatherService, WeatherService>();
+
 
 services.AddScoped<IEventRepo, EventRepo>()
         .AddScoped<IEventService, EventService>()
         .AddScoped<IFieldRepo, FieldRepo>()
-        .AddScoped<IFieldService,FieldService>()
+        .AddScoped<IFieldService, FieldService>()
         .AddScoped<IReservationRepo, ReservationRepo>()
         .AddScoped<IReservationService, ReservationService>()
-        .AddScoped<IUserRepo, UserRepo>()
-        .AddScoped<IUserService, UserService>()
-        
-        .AddScoped<IFieldImageRepo, FieldImageRepo>()
-        .AddScoped<ILogRepo, LogRepo>();
+        .AddScoped<IFieldImageRepo, FieldImageRepo>();
+
 
 services.Configure<FieldImageStorageOptions>(
     builder.Configuration.GetSection(nameof(FieldImageStorageOptions)));
@@ -49,11 +64,12 @@ services.Configure<FieldImageStorageOptions>(
 services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-services.Configure<MollieOptions>(
-    builder.Configuration.GetSection("Mollie"));
-builder.Services.AddHttpContextAccessor();
+services.AddHttpContextAccessor();
 
-services.AddSingleton<MockMollieStore>();
+services.AddScoped<IPaymentClient, PaymentClient>(x =>
+    new PaymentClient(builder.Configuration["MollieOptions:ApiKey"]!));
+
+services.Configure<MollieOptions>(builder.Configuration.GetSection("MollieOptions"));
 
 services.AddCors(options =>
 {
@@ -75,8 +91,6 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = "sub",
             RoleClaimType = "role",
         };
-
-        // In prod moet dit TRUE zijn (want je IS draait op https)
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false;
     });
@@ -104,7 +118,7 @@ services.AddAuthorizationBuilder()
         policy.RequireAuthenticatedUser();
         policy.RequireClaim("scope", "airsoftevents.api.write");
     });
-    
+
 services.AddHttpClient("NotificationApi", client =>
 {
     client.BaseAddress = new Uri(
@@ -125,12 +139,26 @@ app.MapScalarApiReference();
 app.UseHttpsRedirection();
 app.UseCors();
 
+
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        if (httpContext.User.Identity?.IsAuthenticated == true)
+        {
+            var userId = httpContext.User.GetUserId();
+
+            if (userId != Guid.Empty)
+            {
+                diagnosticContext.Set("UserId", userId);
+            }
+        }
+    };
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseMiddleware<AirsoftEvents.Api.Middleware.CosmosLogMiddleware>();
-
 app.MapControllers();
-
 
 app.Run();

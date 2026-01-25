@@ -41,6 +41,10 @@ public class FieldsController : ControllerBase
     public async Task<IActionResult> GetAllFields()
     {
         var fields = await _service.GetAllFieldsAsync();
+        if (fields == null)
+        {
+            return NoContent();
+        }
         return Ok(fields);
     }
 
@@ -67,7 +71,7 @@ public class FieldsController : ControllerBase
 
         if (fields == null)
         {
-            return NotFound();
+            return NoContent();
         }
 
         return Ok(fields);
@@ -81,7 +85,7 @@ public class FieldsController : ControllerBase
 
         if (field == null)
         {
-            return NotFound();
+            return NoContent();
         }
 
         return Ok(field);
@@ -92,7 +96,6 @@ public class FieldsController : ControllerBase
     public async Task<IActionResult> GetFieldByOwnerId()
     {
         var ownerId = User.GetUserId();
-
         var fields = await _service.GetFieldByOwnerIdAsync(ownerId);
         return Ok(fields);
     }
@@ -101,15 +104,8 @@ public class FieldsController : ControllerBase
     [HttpPut("{id}/approve")]
     public async Task<IActionResult> ApproveField([FromRoute] Guid id)
     {
-        try
-        {
-            await _service.ApproveFieldAsync(id);
-            return NoContent();
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
+        await _service.ApproveFieldAsync(id);
+        return NoContent();
     }
 
     [Authorize(Policy = "ApiWritePolicy")]

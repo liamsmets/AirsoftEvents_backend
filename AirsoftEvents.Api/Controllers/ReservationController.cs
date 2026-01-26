@@ -90,6 +90,7 @@ public class ReservationsController : ControllerBase
 
         var tokenUserId = User.GetUserId();
         if (tokenUserId == Guid.Empty) return Unauthorized();
+        
         var isAdmin = User.IsInRole("Admin");
         if (!isAdmin && tokenUserId != reservation.UserId) return Forbid();
 

@@ -32,8 +32,8 @@ public class WebhooksController : ControllerBase
                 await _reservationService.UpdatePaymentStatusAsync(
                 reservationId,
                 payment.Id,
-                ReservationpaymentStatus.paid
-            );
+                ReservationpaymentStatus.paid);
+                
                 Console.WriteLine($"Betaling ontvangen voor reservering: {reservationId}");
             }
         }

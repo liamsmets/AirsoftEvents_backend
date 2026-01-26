@@ -55,6 +55,10 @@ public class ReservationService : IReservationService
             reservation.PaymentStatus = status;
             await _reservationRepo.UpdateAsync(reservation);
         }
+        else
+        {
+            throw new Exception("kan reservation niet vinden");
+        }
     }
 
     public async Task<ReservationResponseContract?>GetByMolliePaymentIdAsync(string id)

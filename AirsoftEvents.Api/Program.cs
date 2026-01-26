@@ -139,6 +139,8 @@ app.MapScalarApiReference();
 app.UseHttpsRedirection();
 app.UseCors();
 
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseSerilogRequestLogging(options =>
 {
@@ -155,9 +157,6 @@ app.UseSerilogRequestLogging(options =>
         }
     };
 });
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

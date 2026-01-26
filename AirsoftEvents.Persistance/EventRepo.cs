@@ -14,7 +14,7 @@ public class EventRepo(AirsoftEventsAppDbContext dbContext): IEventRepo
     }
     public async Task<Event?> GetByIdAsync(Guid id)
     {
-        return await dbContext.Events.FirstOrDefaultAsync(e=> e.Id == id); //Waarom firstorDefault
+        return await dbContext.Events.FirstOrDefaultAsync(e=> e.Id == id);
     }
     public async Task<List<Event>> GetApprovedEventsAsync()
     {
